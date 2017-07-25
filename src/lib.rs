@@ -31,10 +31,22 @@ impl Decodable for String {
             return Err(PacketError::NoEnoughBytesToDecode);
         }
 
-        //println!("size :{}", size);
-        //println!("len :{}", len);
         Ok(String::from_utf8(bytes.split_to(2 + ( size as usize )).split_off(2).to_vec())?)
+    }
+}
 
+impl Decodable for u8 {
+    type Error = PacketError;
+
+    fn decode_with(bytes: &mut BytesMut, _size: Option<usize>) -> Result<Self, Self::Error> {
+        let len = bytes.len();
+        if len >= 1 {
+            let code = bytes[0];
+            bytes.split_to(1);
+            Ok(code)
+        } else {
+            return Err(PacketError::NoEnoughBytesToDecode)
+        }
     }
 }
 
@@ -72,7 +84,16 @@ mod tests {
         let mut bytes = BytesMut::from(vec);
 
         let result = String::decode(&mut bytes);
+        // println!("{:?}", result);
+        // println!("{:?}", bytes);
+    }
+
+    #[test]
+    fn check_u8_decode() {
+        let mut vec = vec![];
+        let mut bytes = BytesMut::from(vec);
+
+        let result = u8::decode(&mut bytes);
         println!("{:?}", result);
-        println!("{:?}", bytes);
     }
 }

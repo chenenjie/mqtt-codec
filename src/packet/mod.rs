@@ -1,6 +1,8 @@
 use bytes::BytesMut;
 use std::fmt;
 
+mod connect;
+
 pub trait FixedHeader {
     fn decode(bytes: &mut BytesMut) -> Result<(u8, u8, u32, usize), FixedHeaderError> {
         let len = bytes.len();
