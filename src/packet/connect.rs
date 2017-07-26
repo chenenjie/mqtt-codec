@@ -98,6 +98,36 @@ struct Connect{
 }
 
 
+impl Decodable for Connect{
+    type Error = PacketError;
+
+    fn decode_with(byte: &mut BytesMut, _decode_size: Option<usize>) -> Result<Self, Self::Error> {
+        let protocol_name = ProtocolName(Decodable::decode(byte)?);
+        let protocol_level = ProtocolLevel(Decodable::decode(byte)?);
+        let connect_flags = Decodable::decode(byte)?;
+        let keep_alive = KeepAlive(Decodable::decode(byte)?);
+
+        let connect = Connect{
+            protocol_name: protocol_name,
+            protocol_level: protocol_level,
+            connect_flags: connect_flags,
+            keep_alive: keep_alive,
+        };
+
+        Ok(connect)
+    }
+}
+
+struct ConnectPayload{
+    client_identifier: String,
+    will_topic: Option<String>,
+    will_message: Option<VecBytes>,
+    user_name: Option<String>,
+    password: Option<String>,
+}
+
+struct VecBytes(Vec<u8>);
+
 
 
 #[cfg(test)]
@@ -110,6 +140,7 @@ mod tests {
         let connect_flag = ConnectFlags::decode(&mut bytes);
         println!("{:?}", connect_flag);
     }
+
 }
 
 

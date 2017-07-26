@@ -50,6 +50,22 @@ impl Decodable for u8 {
     }
 }
 
+impl Decodable for u16 {
+    type Error = PacketError;
+
+    fn decode_with(byte: &mut BytesMut, _size: Option<usize>) -> Result<Self, Self::Error>{
+        let len = byte.len();
+        let mut result = 0u16;
+        if len >= 2 {
+            result = BigEndian::read_u16(byte);
+            byte.split_to(2);
+            Ok(result)
+        }else {
+            return Err(PacketError::NoEnoughBytesToDecode)
+        }
+    }
+}
+
 
 pub enum PacketError {
     NoEnoughBytesToDecode,
