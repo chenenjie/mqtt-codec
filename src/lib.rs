@@ -10,10 +10,14 @@ mod packet;
 pub trait Decodable: Sized {
     type Error;
     fn decode(bytes: &mut BytesMut) -> Result<Self, Self::Error> {
-        Self::decode_with(bytes, None)
+        Self::decode_with(byte, None)
     }
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<usize>) -> Result<Self, Self::Error>;
+
+    fn decode_with<T>(byte: &mut BytesMut, obj: Option<T>) -> Result<Self, Self::Error>{
+        unimplemented!()
+    }
 }
 
 impl Decodable for String {

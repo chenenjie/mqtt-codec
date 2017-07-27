@@ -126,7 +126,52 @@ struct ConnectPayload{
     password: Option<String>,
 }
 
+impl Decodable for ConnectPayload{
+    type Error = PacketError;
+
+    fn decode_with(byte: &mut BytesMut, connect_flags: ConnectFlags) -> Result<Self, Self::Error>{
+        let client_identifier = Decodable::decode(byte)?
+
+        let will_topic = if connect_flags.will_flag {
+            Some(Decodable::decode(byte)?)
+        }else{
+            None
+        }; 
+        let will_message = if connect_flags.will_flag {
+            Some(Decodable::decode(byte)?)
+        }else{
+            None
+        };
+        let user_name = if connect_flags.user_name_flag {
+            Some(Decodable::decode(byte)?)
+        }else{
+            None
+        };
+        let password = if connect_flags.password_flag {
+            Some(Decodable::decode(byte)?)
+        }else{
+            None
+        };
+
+        Ok(ConnectPayload{
+            client_identifier: client_identifier,
+            will_topic: will_topic,
+            will_message: will_message,
+            user_name: user_name,
+            password: password,
+        })
+    }
+}
+
 struct VecBytes(Vec<u8>);
+
+impl Decodable for VecBytes{
+    type Error = PacketError;
+
+    fn decode_with(byte: &mut BytesMut, decode_size: Option<usize>) -> Result<Self, Self::Error>{
+        
+    }
+} 
 
 
 
@@ -140,7 +185,6 @@ mod tests {
         let connect_flag = ConnectFlags::decode(&mut bytes);
         println!("{:?}", connect_flag);
     }
-
 }
 
 
