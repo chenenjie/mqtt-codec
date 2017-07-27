@@ -169,20 +169,7 @@ impl Decodable for VecBytes{
     type Error = PacketError;
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<usize>) -> Result<Self, Self::Error>{
-        let len = byte.len();
-        let size = 0u16;
-        if len >= 2 {
-            size = BigEndian::read_u16(byte);
-        }else {
-            return PacketError::NoEnoughBytesToDecode
-        }
-
-        if len >= size + 2 {
-
-
-        }else {
-            return PacketError::NoEnoughBytesToDecode
-        }
+        
     }
 } 
 
