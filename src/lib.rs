@@ -1,28 +1,29 @@
 extern crate bytes;
 
+mod packet;
+
 use bytes::BytesMut;
 use bytes::BigEndian;
 use bytes::ByteOrder;
 use std::fmt;
+use packet::FixedHeaderError;
 
-mod packet;
 
-pub trait Decodable: Sized {
+pub trait Decodable<'a>: Sized {
     type Error;
+    type Cond;
     fn decode(bytes: &mut BytesMut) -> Result<Self, Self::Error> {
-        Self::decode_with(byte, None)
+        Self::decode_with(bytes, None)
     }
 
-    fn decode_with(byte: &mut BytesMut, decode_size: Option<usize>) -> Result<Self, Self::Error>;
-
-    fn decode_with<T>(byte: &mut BytesMut, obj: Option<T>) -> Result<Self, Self::Error>{
-        unimplemented!()
-    }
+    fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error>;
 }
 
-impl Decodable for String {
+impl<'a> Decodable<'a> for String {
     type Error = PacketError;
-    fn decode_with(bytes: &mut BytesMut, _size: Option<usize>) -> Result<Self, Self::Error> {
+    type Cond = ();
+
+    fn decode_with(bytes: &mut BytesMut, _size: Option<Self::Cond>) -> Result<Self, Self::Error> {
         let len = bytes.len();
         let mut size = 0u16;
         if len >= 2 {
@@ -39,10 +40,11 @@ impl Decodable for String {
     }
 }
 
-impl Decodable for u8 {
+impl<'a> Decodable<'a> for u8 {
     type Error = PacketError;
+    type Cond = ();
 
-    fn decode_with(bytes: &mut BytesMut, _size: Option<usize>) -> Result<Self, Self::Error> {
+    fn decode_with(bytes: &mut BytesMut, _size: Option<Self::Cond>) -> Result<Self, Self::Error> {
         let len = bytes.len();
         if len >= 1 {
             let code = bytes[0];
@@ -54,10 +56,11 @@ impl Decodable for u8 {
     }
 }
 
-impl Decodable for u16 {
+impl<'a> Decodable<'a> for u16 {
     type Error = PacketError;
+    type Cond = ();
 
-    fn decode_with(byte: &mut BytesMut, _size: Option<usize>) -> Result<Self, Self::Error>{
+    fn decode_with(byte: &mut BytesMut, _size: Option<Self::Cond>) -> Result<Self, Self::Error>{
         let len = byte.len();
         let mut result = 0u16;
         if len >= 2 {
@@ -74,6 +77,7 @@ impl Decodable for u16 {
 pub enum PacketError {
     NoEnoughBytesToDecode,
     FromUtf8Error(::std::string::FromUtf8Error),
+    FixedHeaderError(FixedHeaderError),
 }
 
 impl From<::std::string::FromUtf8Error> for PacketError {
@@ -82,11 +86,18 @@ impl From<::std::string::FromUtf8Error> for PacketError {
     }
 }
 
+impl From<FixedHeaderError> for PacketError{
+    fn from(err: FixedHeaderError) -> PacketError{
+        PacketError::FixedHeaderError(err)
+    }
+} 
+
 impl fmt::Debug for PacketError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             &PacketError::NoEnoughBytesToDecode => write!(f, "No EnougnBytes"),
             &PacketError::FromUtf8Error(ref e) => write!(f, "error from utf8 error"),
+            &PacketError::FixedHeaderError(ref e) => write!(f, "error from decode fixedHeader")
         }
     }
 }

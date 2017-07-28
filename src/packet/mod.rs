@@ -31,7 +31,6 @@ pub trait FixedHeader {
             }
         }
         Err(FixedHeaderError::RemainLengthAvailable)
-
     }
 }
 
