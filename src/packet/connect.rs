@@ -1,4 +1,4 @@
-use super::super::Decodable;
+use super::super::{Decodable, Encodable};
 use super::super::PacketError;
 use super::FixedHeader;
 use bytes::BytesMut;
@@ -32,50 +32,43 @@ impl<'a> Decodable<'a> for ConnectFlags {
             let byte = bytes[0];
             bytes.split_to(1);
 
-            let user_name_flag = {
-                if byte >> 7 & 0x01 == 0x01 {
+            let user_name_flag = if byte >> 7 & 0x01 == 0x01 {
                     true
                 }else {
                     false
-                }
             };
-            let password_flag = {
+            let password_flag = 
                 if byte >> 6 & 0x01 == 0x01 {
                     true
                 } else {
                     false
-                }
             };
-            let will_retain = {
+            let will_retain = 
                 if byte >> 5 & 0x01 == 0x01 {
                     true
                 } else{
                     false
-                }
             };
             let will_QoS = {
                 byte >> 3 & 0x03
             };
-            let will_flag = {
+            let will_flag = 
                 if byte >> 2 & 0x01 == 0x01 {
                     true
                 }else{
                     false
-                }
             };
-            let clean_session = {
+            let clean_session = 
                 if byte >> 1 & 0x01 == 0x01 {
                     true
                 } else {
                     false
-                }
             };
-            let reserved = {
+            let reserved = 
                 if byte & 0x01 == 0x01 {
                     true
                 }else {
                     false
-                }
             };
 
             let connect_flags = ConnectFlags {
@@ -94,6 +87,38 @@ impl<'a> Decodable<'a> for ConnectFlags {
         }
     }
 } 
+
+impl Encodable for ConnectFlags{
+    fn encode(&self) -> Vec<u8>{
+        let mut connect_flag = 0u8;
+        if self.user_name_flag {
+            connect_flag |= 0x01;
+        };
+        connect_flag = connect_flag << 1;
+        if self.password_flag {
+            connect_flag |= 0x01;
+        };
+        connect_flag = connect_flag << 1;
+        if self.will_retain {
+            connect_flag |= 0x01;
+        };
+        connect_flag = connect_flag << 2;
+        connect_flag |= self.will_QoS;
+        connect_flag = connect_flag << 1;
+        if self.will_flag {
+            connect_flag |= 0x01;
+        };
+        connect_flag = connect_flag << 1;
+        if self.clean_session {
+            connect_flag |= 0x01;
+        };
+        connect_flag = connect_flag << 1;
+        if self.reserved {
+            connect_flag |= 0x01;
+        };
+        vec![connect_flag]
+    }
+}
 
 #[derive(Debug)]
 struct KeepAlive(u16);
@@ -278,6 +303,20 @@ mod tests {
         let mut bytes = BytesMut::from(vec);
         let packet = Connect::decode(&mut bytes);
         //println!("{:?}", packet);
+    }
+
+    #[test]
+    fn test_encode_connectflags() {
+        let connect_flag = ConnectFlags{
+            user_name_flag: true,
+            password_flag: false,
+            will_retain: true,
+            will_QoS: 3u8,
+            will_flag: true,
+            clean_session: false,
+            reserved: true,
+        };
+        // println!("{:?}", connect_flag.encode());
     }
 
 }

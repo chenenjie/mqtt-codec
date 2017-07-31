@@ -20,7 +20,7 @@ pub trait Decodable<'a>: Sized {
 }
 
 pub trait Encodable{
-    fn encode(&self) -> BytesMut;
+    fn encode(&self) -> Vec<u8>;
 }
 
 impl<'a> Decodable<'a> for String {
@@ -79,13 +79,23 @@ impl<'a> Decodable<'a> for u16 {
 
 
 impl Encodable for String {
-    fn encode(&self) -> BytesMut {
-        self.len
-        BytesMut::from(String)
+    fn encode(&self) -> Vec<u8> {
+        let length = self.len() as u16;
+        let mut vec = vec![0u8, 0u8];
+        BigEndian::write_u16(&mut vec, length);
+        vec.extend(self.as_bytes());
+        vec
     }
 }
 
-impl 
+
+impl Encodable for u16 {
+    fn encode(&self) -> Vec<u8> {
+        let mut vec = vec![0u8; 2];
+        BigEndian::write_u16(&mut vec, *self);
+        vec
+    }
+}
 
 
 pub enum PacketError {
@@ -139,6 +149,24 @@ mod tests {
         let mut bytes = BytesMut::from(vec);
 
         let result = u8::decode(&mut bytes);
-        println!("{:?}", result);
+        // println!("{:?}", result);
+    }
+
+    #[test]
+    fn check_string_encode(){
+        let target = String::from("enjie");
+        // println!("{:?}", target.encode));
+    }
+
+
+    #[test]
+    fn check_u16_encode(){
+        let number = 65535u16;
+
+        let mut bytes = BytesMut::from(number.encode());
+        
+        let encode: Result<u16, PacketError> = Decodable::decode(&mut bytes);
+        // println!("{:?}", encode);
+        
     }
 }
