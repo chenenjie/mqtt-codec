@@ -4,7 +4,7 @@ use std::fmt;
 mod connect;
 
 pub trait FixedHeader {
-    fn decode(bytes: &mut BytesMut) -> Result<(u8, u8, u32, usize), FixedHeaderError> {
+    fn get_fixheader(bytes: &mut BytesMut) -> Result<(u8, u8, u32, usize), FixedHeaderError> {
         let len = bytes.len();
         let mut control_packet_type = 0u8;
         let mut reserved_code = 0u8;
@@ -68,7 +68,7 @@ mod tests {
 
         let vec = vec![241u8, 0xFF, 0xFF, 0xFF, 0x8f];
         let mut b = BytesMut::from(vec);
-        let result = Enjie::decode(&mut b);
+        //let result = Enjie::decode(&mut b);
         //println!("{:?}", result);
         // println!("{:?}", b[0]);
         //println!("{}", b.len());

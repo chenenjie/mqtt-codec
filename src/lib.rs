@@ -19,6 +19,10 @@ pub trait Decodable<'a>: Sized {
     fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error>;
 }
 
+pub trait Encodable{
+    fn encode(&self) -> BytesMut;
+}
+
 impl<'a> Decodable<'a> for String {
     type Error = PacketError;
     type Cond = ();
@@ -72,6 +76,16 @@ impl<'a> Decodable<'a> for u16 {
         }
     }
 }
+
+
+impl Encodable for String {
+    fn encode(&self) -> BytesMut {
+        self.len
+        BytesMut::from(String)
+    }
+}
+
+impl 
 
 
 pub enum PacketError {

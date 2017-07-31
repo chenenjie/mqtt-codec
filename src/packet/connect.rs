@@ -5,8 +5,10 @@ use bytes::BytesMut;
 use bytes::BigEndian;
 use bytes::ByteOrder;
 
+#[derive(Debug)]
 struct ProtocolName(String);
 
+#[derive(Debug)]
 struct ProtocolLevel(u8);
 
 #[derive(Debug, Clone, Copy)]
@@ -86,8 +88,6 @@ impl<'a> Decodable<'a> for ConnectFlags {
                     reserved: reserved,
             };
             
-            println!("{:?}",connect_flags.will_flag);
-            
             Ok(connect_flags)
         }else {
             Err(PacketError::NoEnoughBytesToDecode)
@@ -98,6 +98,7 @@ impl<'a> Decodable<'a> for ConnectFlags {
 #[derive(Debug)]
 struct KeepAlive(u16);
 
+#[derive(Debug)]
 struct ConnectFixedHeader{
     packet_type: u8,
     reserved: u8,
@@ -106,22 +107,22 @@ struct ConnectFixedHeader{
 
 impl FixedHeader for ConnectFixedHeader{}
 
-impl<'a, T: FixedHeader> Decodable<'a> for ConnectFixedHeader{
+impl<'a> Decodable<'a> for ConnectFixedHeader{
     type Error = PacketError;
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error>{
-        match Self::get_fixheader() {
+        match Self::get_fixheader(byte) {
             Ok((packet_type, reserved, remaining_length, n)) => {
                 byte.split_to(2 + n);
-                ConnectFixHeader{
+                Ok(ConnectFixedHeader{
                     packet_type: packet_type,
                     reserved: reserved,
                     remaining_length: remaining_length,
-                }
+                })
             }
             Err(err) => {
-                err.into()
+                Err(err.into())
             }
         } 
     }
@@ -129,7 +130,7 @@ impl<'a, T: FixedHeader> Decodable<'a> for ConnectFixedHeader{
 
 #[derive(Debug)]
 struct Connect{
-    fix_header: ConnectFixHeader,
+    fix_header: ConnectFixedHeader,
     protocol_name: ProtocolName,
     protocol_level: ProtocolLevel,
     connect_flags: ConnectFlags,
@@ -143,6 +144,8 @@ impl<'a> Decodable<'a> for Connect{
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, _decode_size: Option<Self::Cond>) -> Result<Self, Self::Error> {
+        //byte is fixable length according remaining length
+        let fix_header = Decodable::decode(byte)?;
         let protocol_name = ProtocolName(Decodable::decode(byte)?);
         let protocol_level = ProtocolLevel(Decodable::decode(byte)?);
         let connect_flags = Decodable::decode(byte)?;
@@ -151,6 +154,7 @@ impl<'a> Decodable<'a> for Connect{
 
 
         let connect = Connect{
+            fix_header: fix_header,
             protocol_name: protocol_name,
             protocol_level: protocol_level,
             connect_flags: connect_flags,
@@ -272,7 +276,8 @@ mod tests {
     fn test_connect_packet(){
         let vec = vec![];
         let mut bytes = BytesMut::from(vec);
-        let packet = Connect::decode(bytes);
+        let packet = Connect::decode(&mut bytes);
+        //println!("{:?}", packet);
     }
 
 }
