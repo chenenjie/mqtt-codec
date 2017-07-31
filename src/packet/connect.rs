@@ -89,7 +89,9 @@ impl<'a> Decodable<'a> for ConnectFlags {
 } 
 
 impl Encodable for ConnectFlags{
-    fn encode(&self) -> Vec<u8>{
+    type Error = PacketError;
+    type Cond = ();
+    fn encode_with(&self, _cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
         let mut connect_flag = 0u8;
         if self.user_name_flag {
             connect_flag |= 0x01;
@@ -116,7 +118,7 @@ impl Encodable for ConnectFlags{
         if self.reserved {
             connect_flag |= 0x01;
         };
-        vec![connect_flag]
+        Ok(vec![connect_flag])
     }
 }
 
@@ -270,6 +272,17 @@ impl<'a> Decodable<'a> for VecBytes{
     }
 } 
 
+impl Encodable for VecBytes {
+    type Error = PacketError;
+    type Cond = ();
+    fn encode_with(&self, _cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error> {
+        let mut result = vec![0u8; 2];
+        BigEndian::write_u16(&mut result, self.0.len() as u16);
+        result.extend(self.0.iter().cloned());
+        Ok(result)
+    }
+}
+
 
 
 #[cfg(test)]
@@ -296,6 +309,14 @@ mod tests {
         let vec_bytes = VecBytes::decode(&mut bytes);
         // println!("{:?}", vec_bytes); 
     }
+
+    #[test]
+    fn test_encode_vecbytes(){
+        let vec = vec![0x00, 0x02, 0x13, 0x32, 0x33];
+        let param = VecBytes(vec);
+        println!("{:?}", param.encode()); 
+    }
+
 
     #[test]
     fn test_connect_packet(){
