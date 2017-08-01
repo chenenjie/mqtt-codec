@@ -108,11 +108,21 @@ impl Encodable for u16 {
     }
 }
 
+impl Encodable for u8{
+    type Error = PacketError;
+    type Cond = ();
+
+    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error> {
+        Ok(vec![*self])
+    }
+}
+
 
 pub enum PacketError {
     NoEnoughBytesToDecode,
     FromUtf8Error(::std::string::FromUtf8Error),
     FixedHeaderError(FixedHeaderError),
+    InvalidEncode,
 }
 
 impl From<::std::string::FromUtf8Error> for PacketError {
@@ -132,7 +142,8 @@ impl fmt::Debug for PacketError {
         match self {
             &PacketError::NoEnoughBytesToDecode => write!(f, "No EnougnBytes"),
             &PacketError::FromUtf8Error(ref e) => write!(f, "error from utf8 error"),
-            &PacketError::FixedHeaderError(ref e) => write!(f, "error from decode fixedHeader")
+            &PacketError::FixedHeaderError(ref e) => write!(f, "error from decode fixedHeader"),
+            &PacketError::InvalidEncode => write!(f, "invalid encode param or content"),
         }
     }
 }

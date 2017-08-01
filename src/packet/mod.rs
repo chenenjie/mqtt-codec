@@ -32,6 +32,32 @@ pub trait FixedHeader {
         }
         Err(FixedHeaderError::RemainLengthAvailable)
     }
+
+    fn encode_fixedheader(packet_type: u8, reserved: u8, remaining_length: u32) -> Result<Vec<u8>, FixedHeaderError> {
+        let mut vec = vec![];
+        let first_u8 = (packet_type << 4) | reserved;
+        vec.push(first_u8);
+
+        if remaining_length >= 0 && remaining_length <= 127 {
+            vec.push(remaining_length as u8);
+        }else if remaining_length >= 128 && remaining_length <= 16_383 {
+            vec.push((remaining_length & 0x7f) as u8);
+            vec.push(( remaining_length >> 7 | 0x80 ) as u8);
+        }else if remaining_length >= 16_384 && remaining_length <= 2_097_151 {
+            vec.push(( remaining_length & 0x7f ) as u8);
+            vec.push(( remaining_length >> 7 & 0x7f ) as u8);
+            vec.push(( remaining_length >> 14 | 0x80 ) as u8);
+        }else if remaining_length >= 2_097_152 && remaining_length <= 268_435_455 {
+            vec.push(( remaining_length & 0x7f ) as u8);
+            vec.push(( remaining_length >> 7 & 0x7f ) as u8);
+            vec.push(( remaining_length >> 14 & 0x7f ) as u8);
+            vec.push(( remaining_length >> 21 | 0x80 ) as u8);
+        }else{
+            return Err(FixedHeaderError::RemainLengthAvailable);
+        }
+        Ok(vec)
+        
+    }
 }
 
 pub enum FixedHeaderError {

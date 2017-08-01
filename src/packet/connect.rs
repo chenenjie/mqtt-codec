@@ -88,6 +88,30 @@ impl<'a> Decodable<'a> for ConnectFlags {
     }
 } 
 
+impl Encodable for Connect {
+    type Error = PacketError;
+    type Cond = ();
+
+    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
+        let mut result = vec![];
+        let fix_header = self.fix_header.encode()?;
+        let protocol_name = self.protocol_name.0.encode()?;
+        let protocol_level = self.protocol_level.0.encode()?;
+        let connect_flag = self.connect_flags.encode()?;
+        let keep_alive = self.keep_alive.0.encode()?;
+        let payload = self.payload.encode()?;
+
+        result.extend(fix_header);
+        result.extend(protocol_name);
+        result.extend(protocol_level);
+        result.extend(connect_flag);
+        result.extend(keep_alive);
+        result.extend(payload);
+
+        Ok(result)
+    }
+}
+
 impl Encodable for ConnectFlags{
     type Error = PacketError;
     type Cond = ();
@@ -154,6 +178,16 @@ impl<'a> Decodable<'a> for ConnectFixedHeader{
         } 
     }
 }
+
+impl Encodable for ConnectFixedHeader {
+    type Error = PacketError;
+    type Cond = ();
+    
+    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
+        Ok(Self::encode_fixedheader(self.packet_type, self.reserved, self.remaining_length)?)
+    }
+}
+
 
 #[derive(Debug)]
 struct Connect{
@@ -241,6 +275,44 @@ impl<'a> Decodable<'a> for ConnectPayload{
         }else {
             Err(PacketError::NoEnoughBytesToDecode)
         } 
+    }
+}
+
+impl Encodable for ConnectPayload{
+    type Error = PacketError;
+    type Cond = ConnectFlags;
+
+    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
+        let mut vec = vec![];
+        match cond {
+            Some(connect_flag) => {
+                vec.extend(self.client_identifier.as_bytes());
+                if connect_flag.will_flag {
+                    //TODO eles return unmatchable error
+                    if let Some(ref topic) = self.will_topic {
+                        vec.extend(topic.encode()?);        
+                    };
+
+                    if let Some(ref message) = self.will_message{
+                        vec.extend(message.encode()?);
+                    };
+                };
+
+                if connect_flag.user_name_flag {
+                    if let Some(ref user_name) = self.user_name {
+                        vec.extend(user_name.encode()?);
+                    };
+                };
+
+                if connect_flag.password_flag {
+                    if let Some(ref password) = self.password {
+                        vec.extend(password.encode()?);
+                    };
+                };
+                Ok(vec)
+            },
+            _ => Err(PacketError::InvalidEncode)
+        }
     }
 }
 
