@@ -199,6 +199,11 @@ struct Connect{
     payload: ConnectPayload,
 }
 
+impl Connect {
+    fn new(){
+        
+    }
+}
 
 impl<'a> Decodable<'a> for Connect{
     type Error = PacketError;
@@ -288,7 +293,7 @@ impl Encodable for ConnectPayload{
             Some(connect_flag) => {
                 vec.extend(self.client_identifier.as_bytes());
                 if connect_flag.will_flag {
-                    //TODO eles return unmatchable error
+                    //TODO eles return connectflag and content unmatchable error
                     if let Some(ref topic) = self.will_topic {
                         vec.extend(topic.encode()?);        
                     };
