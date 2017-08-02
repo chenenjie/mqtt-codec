@@ -4,6 +4,10 @@ use std::fmt;
 mod connect;
 
 pub trait FixedHeader {
+    fn new() -> Self;
+     
+    fn set_remaining_length(&mut self, len: u32);
+    
     fn get_fixheader(bytes: &mut BytesMut) -> Result<(u8, u8, u32, usize), FixedHeaderError> {
         let len = bytes.len();
         let mut control_packet_type = 0u8;
@@ -58,6 +62,22 @@ pub trait FixedHeader {
         Ok(vec)
         
     }
+
+    fn get_remaining_length_bytes(remaining_length: u32) -> Result<u32, FixedHeaderError> {
+        let mut num = 1u32;
+        if remaining_length >= 0 && remaining_length <= 127 {
+            num += 1;
+        }else if remaining_length >= 128 && remaining_length <= 16_383 {
+            num += 2;
+        }else if remaining_length >= 16_384 && remaining_length <= 2_097_151 {
+            num += 3;
+        }else if remaining_length >= 2_097_152 && remaining_length <= 268_435_455 {
+            num += 4;
+        }else{
+            return Err(FixedHeaderError::RemainLengthAvailable);
+        }
+        Ok(num)
+    }
 }
 
 pub enum FixedHeaderError {
@@ -81,8 +101,8 @@ mod tests {
     use super::*;
     #[test]
     fn test_fixheader() {
-        struct Enjie;
-        impl FixedHeader for Enjie {}
+        // struct Enjie;
+        // impl FixedHeader for Enjie {}
 
         // let enjie = Enjie;
 

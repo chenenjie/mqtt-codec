@@ -28,6 +28,8 @@ pub trait Encodable{
     }
 
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>;
+
+    fn encode_length(&self) -> Result<u32, Self::Error>;
 }
 
 impl<'a> Decodable<'a> for String {
@@ -95,6 +97,10 @@ impl Encodable for String {
         vec.extend(self.as_bytes());
         Ok(vec)
     }
+    
+    fn encode_length(&self) -> Result<u32, Self::Error>{
+        Ok(2 + (self.len() as u32))
+    }
 }
 
 
@@ -106,6 +112,10 @@ impl Encodable for u16 {
         BigEndian::write_u16(&mut vec, *self);
         Ok(vec)
     }
+
+    fn encode_length(&self) -> Result<u32, Self::Error> {
+        Ok(2u32)
+    }
 }
 
 impl Encodable for u8{
@@ -114,6 +124,10 @@ impl Encodable for u8{
 
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error> {
         Ok(vec![*self])
+    }
+
+    fn encode_length(&self) -> Result<u32, Self::Error> {
+        Ok(1u32)
     }
 }
 

@@ -22,6 +22,20 @@ struct ConnectFlags {
     reserved: bool,
 }
 
+impl ConnectFlags{
+    fn new() -> ConnectFlags{
+        ConnectFlags{
+            user_name_flag: false,
+            password_flag: false,
+            will_retain: false,
+            will_QoS: 0,
+            will_flag: false,
+            clean_session: false,
+            reserved: false,
+        }
+    }
+}
+
 
 impl<'a> Decodable<'a> for ConnectFlags {
     type Error = PacketError;
@@ -110,6 +124,10 @@ impl Encodable for Connect {
 
         Ok(result)
     }
+
+    fn encode_length(&self) -> Result<u32, PacketError> {
+        Ok(1u32)
+    }
 }
 
 impl Encodable for ConnectFlags{
@@ -144,6 +162,10 @@ impl Encodable for ConnectFlags{
         };
         Ok(vec![connect_flag])
     }
+
+    fn encode_length(&self) -> Result<u32, PacketError> {
+        Ok(1)    
+    }
 }
 
 #[derive(Debug)]
@@ -156,7 +178,20 @@ struct ConnectFixedHeader{
     remaining_length: u32,
 }
 
-impl FixedHeader for ConnectFixedHeader{}
+
+impl FixedHeader for ConnectFixedHeader{
+    fn new() -> Self{
+        ConnectFixedHeader{
+            packet_type: 1,
+            reserved: 0,
+            remaining_length: 0,
+        }
+    }
+     
+    fn set_remaining_length(&mut self, len: u32) {
+        self.remaining_length = len;
+    }
+}
 
 impl<'a> Decodable<'a> for ConnectFixedHeader{
     type Error = PacketError;
@@ -173,7 +208,7 @@ impl<'a> Decodable<'a> for ConnectFixedHeader{
                 })
             }
             Err(err) => {
-                Err(err.into())
+                Err(From::from(err))
             }
         } 
     }
@@ -184,8 +219,12 @@ impl Encodable for ConnectFixedHeader {
     type Cond = ();
     
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
-        Ok(Self::encode_fixedheader(self.packet_type, self.reserved, self.remaining_length)?)
+        Self::encode_fixedheader(self.packet_type, self.reserved, self.remaining_length).map_err(From::from)
     }
+
+    fn encode_length(&self) -> Result<u32, Self::Error> {
+        Self::get_remaining_length_bytes(self.remaining_length).map_err(From::from)
+    } 
 }
 
 
@@ -200,8 +239,20 @@ struct Connect{
 }
 
 impl Connect {
-    fn new(){
-        
+    fn with_level<P, C>(protocol_name: P, client_identifier: C, level: u8) -> Connect 
+        where P: Into<String>,
+              C: Into<String>
+    {
+        let connect = Connect{
+            fix_header: ConnectFixedHeader::new(),
+            protocol_name: ProtocolName(protocol_name.into()),
+            protocol_level: ProtocolLevel(level),
+            connect_flags: ConnectFlags::new(),
+            keep_alive: KeepAlive(0),
+            payload: ConnectPayload::new(client_identifier.into()),
+        };
+
+        connect
     }
 }
 
@@ -239,6 +290,18 @@ struct ConnectPayload{
     will_message: Option<VecBytes>,
     user_name: Option<String>,
     password: Option<String>,
+}
+
+impl ConnectPayload {
+    fn new(client_identifier: String) -> ConnectPayload {
+        ConnectPayload {
+            client_identifier: client_identifier,
+            will_topic: None,
+            will_message: None,
+            user_name: None,
+            password: None,
+        }
+    }
 }
 
 impl<'a> Decodable<'a> for ConnectPayload{
@@ -319,6 +382,10 @@ impl Encodable for ConnectPayload{
             _ => Err(PacketError::InvalidEncode)
         }
     }
+
+    fn encode_length(&self) -> Result<u32, PacketError> {
+        Ok(0u32)
+    }
 }
 
 #[derive(Debug)]
@@ -357,6 +424,10 @@ impl Encodable for VecBytes {
         BigEndian::write_u16(&mut result, self.0.len() as u16);
         result.extend(self.0.iter().cloned());
         Ok(result)
+    }
+
+    fn encode_length(&self) -> Result<u32, Self::Error> {
+        Ok( 2 + ( self.0.len() as u32 ) )
     }
 }
 
