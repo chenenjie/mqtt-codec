@@ -216,7 +216,7 @@ impl Connect {
         where P: Into<String>,
               C: Into<String>
     {
-        let connect = Connect{
+        let mut connect = Connect{
             fix_header: ConnectFixedHeader::new(),
             protocol_name: ProtocolName(protocol_name.into()),
             protocol_level: ProtocolLevel(level),
@@ -224,6 +224,7 @@ impl Connect {
             keep_alive: KeepAlive(0),
             payload: ConnectPayload::new(client_identifier.into()),
         };
+        connect.calculate_remaining_length();
 
         connect
     }
@@ -409,7 +410,7 @@ impl Encodable for ConnectPayload{
         let mut vec = vec![];
         match cond {
             Some(connect_flag) => {
-                vec.extend(self.client_identifier.as_bytes());
+                vec.extend(self.client_identifier.encode()?);
                 if connect_flag.will_flag {
                     //TODO eles return connectflag and content unmatchable error
                     if let Some(ref topic) = self.will_topic {
@@ -559,8 +560,13 @@ mod tests {
     #[test]
     fn test_encode_connect_packet(){
         let packet = Connect::with_level("MQTT", "123", 4);
-        println!("{:?}", packet.encode());
 
+        let vec = packet.encode().unwrap();
+        let mut bytes = BytesMut::from(vec);
+        match Connect::decode(&mut bytes) {
+            Ok(result) => println!("{:?}", result),
+            Err(err) => println!("{:?}", err)
+        }
     }
 
 }

@@ -16,8 +16,9 @@ fn main() {
         ff: 32,
     };
 
-    println!("{:?}", enjie.df);
+    // println!("{:?}", enjie.df);
     //let slice = a[2..4];
+    println!("defined on line:{} {}", file!(), line!());
 
     //println!("{:?}", slice);
     // b.fuck();
