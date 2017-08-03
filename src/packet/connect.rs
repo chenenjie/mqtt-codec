@@ -102,33 +102,6 @@ impl<'a> Decodable<'a> for ConnectFlags {
     }
 } 
 
-impl Encodable for Connect {
-    type Error = PacketError;
-    type Cond = ();
-
-    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
-        let mut result = vec![];
-        let fix_header = self.fix_header.encode()?;
-        let protocol_name = self.protocol_name.0.encode()?;
-        let protocol_level = self.protocol_level.0.encode()?;
-        let connect_flag = self.connect_flags.encode()?;
-        let keep_alive = self.keep_alive.0.encode()?;
-        let payload = self.payload.encode()?;
-
-        result.extend(fix_header);
-        result.extend(protocol_name);
-        result.extend(protocol_level);
-        result.extend(connect_flag);
-        result.extend(keep_alive);
-        result.extend(payload);
-
-        Ok(result)
-    }
-
-    fn encode_length(&self) -> Result<u32, PacketError> {
-        Ok(1u32)
-    }
-}
 
 impl Encodable for ConnectFlags{
     type Error = PacketError;
@@ -254,6 +227,53 @@ impl Connect {
 
         connect
     }
+
+    fn calculate_remaining_length(&mut self) -> Result<(), PacketError> {
+        let remaining_length = self.protocol_name.0.encode_length()? + self.protocol_level.0.encode_length()? + self.connect_flags.encode_length()? + self.keep_alive.0.encode_length()? + self.payload.encode_length()?;
+        self.fix_header.remaining_length = remaining_length;
+        Ok(())
+    }
+
+    fn set_will(&mut self, will: Option<(String, Vec<u8>)>) -> Result<(), PacketError>{
+        self.connect_flags.will_flag = will.is_some();
+        
+        match will {
+            Some((topic_name, message)) => {
+                self.payload.will_topic = Some(topic_name);
+                self.payload.will_message = Some(VecBytes(message));
+            },
+            None => {
+                self.payload.will_topic = None;
+                self.payload.will_message = None;
+            }
+        }
+        self.calculate_remaining_length()
+    }
+
+    fn set_user_name(&mut self, user_name: Option<String>) -> Result<(), PacketError>{
+        self.connect_flags.user_name_flag = user_name.is_some();
+        self.payload.user_name = user_name;        
+        self.calculate_remaining_length()
+    }
+
+    fn set_password(&mut self, password: Option<String>) -> Result<(), PacketError> {
+        self.connect_flags.password_flag = password.is_some();
+        self.payload.password = password;
+        self.calculate_remaining_length()
+    }
+
+    fn set_clean_session(&mut self, clean_session: bool) {
+        self.connect_flags.clean_session = clean_session;
+    }
+
+    fn set_will_retain(&mut self, will_retain: bool) {
+        self.connect_flags.will_retain = will_retain;
+    }
+
+    fn set_will_qos(&mut self, will_qos: u8){
+        assert!(will_qos <= 2);
+        self.connect_flags.will_QoS = will_qos;
+    }
 }
 
 impl<'a> Decodable<'a> for Connect{
@@ -280,6 +300,41 @@ impl<'a> Decodable<'a> for Connect{
         };
 
         Ok(connect)
+    }
+}
+
+impl Encodable for Connect {
+    type Error = PacketError;
+    type Cond = ();
+
+    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
+        let mut result = vec![];
+        let fix_header = self.fix_header.encode()?;
+        let protocol_name = self.protocol_name.0.encode()?;
+        let protocol_level = self.protocol_level.0.encode()?;
+        let connect_flag = self.connect_flags.encode()?;
+        let keep_alive = self.keep_alive.0.encode()?;
+        let payload = self.payload.encode_with(Some(self.connect_flags))?;
+
+        result.extend(fix_header);
+        result.extend(protocol_name);
+        result.extend(protocol_level);
+        result.extend(connect_flag);
+        result.extend(keep_alive);
+        result.extend(payload);
+
+        Ok(result)
+    }
+
+    fn encode_length(&self) -> Result<u32, PacketError> {
+        let mut length = self.fix_header.encode_length()?;
+        length += self.protocol_name.0.encode_length()?;
+        length += self.protocol_level.0.encode_length()?;
+        length += self.connect_flags.encode_length()?;
+        length += self.keep_alive.0.encode_length()?;
+        length += self.payload.encode_length()?;
+
+        Ok(length)
     }
 }
 
@@ -384,7 +439,20 @@ impl Encodable for ConnectPayload{
     }
 
     fn encode_length(&self) -> Result<u32, PacketError> {
-        Ok(0u32)
+        let mut length = self.client_identifier.encode_length()?;
+        if let Some(ref will_topic) = self.will_topic {
+            length += will_topic.encode_length()?;
+        }
+        if let Some(ref will_message) = self.will_message{
+            length += will_message.encode_length()?;
+        }
+        if let Some(ref user_name) = self.user_name {
+            length += user_name.encode_length()?;
+        }
+        if let Some(ref password) = self.password {
+            length += password.encode_length()?;
+        }
+        Ok(length)
     }
 }
 
@@ -462,7 +530,7 @@ mod tests {
     fn test_encode_vecbytes(){
         let vec = vec![0x00, 0x02, 0x13, 0x32, 0x33];
         let param = VecBytes(vec);
-        println!("{:?}", param.encode()); 
+        // println!("{:?}", param.encode()); 
     }
 
 
@@ -486,6 +554,13 @@ mod tests {
             reserved: true,
         };
         // println!("{:?}", connect_flag.encode());
+    }
+
+    #[test]
+    fn test_encode_connect_packet(){
+        let packet = Connect::with_level("MQTT", "123", 4);
+        println!("{:?}", packet.encode());
+
     }
 
 }
