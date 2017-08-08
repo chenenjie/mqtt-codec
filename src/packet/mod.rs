@@ -1,7 +1,8 @@
 use bytes::BytesMut;
 use std::fmt;
+use std::error::Error;
 
-mod connect;
+pub mod connect;
 
 pub trait FixedHeader {
     fn new() -> Self;
@@ -16,7 +17,8 @@ pub trait FixedHeader {
             control_packet_type = bytes[0] >> 4;
             reserved_code = bytes[0] & 0x0f
         } else {
-            return Err(FixedHeaderError::NoEnoughBytes);
+            // return Err(FixedHeaderError::NoEnoughBytes);
+            bail!(ErrorKind::NoEnoughBytes("enjie".into()));
         }
 
         let mut n = 1;
@@ -28,13 +30,15 @@ pub trait FixedHeader {
             if a / 128 > 0 {
                 n += 1;
                 if n + 1 > len {
-                    return Err(FixedHeaderError::NoEnoughBytes);
+                    // return Err(FixedHeaderError::NoEnoughBytes);
+                    bail!(ErrorKind::NoEnoughBytes("enjie".into()));
                 }
             } else {
                 return Ok((control_packet_type, reserved_code, sum, n));
             }
         }
-        Err(FixedHeaderError::RemainLengthAvailable)
+        // Err(FixedHeaderError::RemainLengthAvailable)
+        Err(ErrorKind::NoEnoughBytes("enjie".into()).into())
     }
 
     fn encode_fixedheader(packet_type: u8, reserved: u8, remaining_length: u32) -> Result<Vec<u8>, FixedHeaderError> {
@@ -57,7 +61,8 @@ pub trait FixedHeader {
             vec.push(( remaining_length >> 14 & 0x7f ) as u8);
             vec.push(( remaining_length >> 21 | 0x80 ) as u8);
         }else{
-            return Err(FixedHeaderError::RemainLengthAvailable);
+            // return Err(FixedHeaderError::RemainLengthAvailable);
+            bail!(ErrorKind::RemainLengthAvailable("enjie".into()));
         }
         Ok(vec)
         
@@ -74,27 +79,50 @@ pub trait FixedHeader {
         }else if remaining_length >= 2_097_152 && remaining_length <= 268_435_455 {
             num += 4;
         }else{
-            return Err(FixedHeaderError::RemainLengthAvailable);
+            // return Err(FixedHeaderError::RemainLengthAvailable);
+            bail!(ErrorKind::RemainLengthAvailable("enjie".into()));
         }
         Ok(num)
     }
 }
 
-pub enum FixedHeaderError {
-    NoEnoughBytes,
-    RemainLengthAvailable,
-}
+// #[derive(Debug)]
+// pub enum FixedHeaderError {
+    // NoEnoughBytes,
+    // RemainLengthAvailable,
+// }
 
-impl fmt::Debug for FixedHeaderError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &FixedHeaderError::NoEnoughBytes => write!(f, "No EnougnBytes"),
-            &FixedHeaderError::RemainLengthAvailable => write!(f, "Remailength Avaialable"),
-        }
+// impl fmt::Display for FixedHeaderError {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         match self {
+//             &FixedHeaderError::NoEnoughBytes => write!(f, "No EnougnBytes"),
+//             &FixedHeaderError::RemainLengthAvailable => write!(f, "Remailength Avaialable"),
+//         }
+//     }
+// }
+
+// impl Error for FixedHeaderError{
+
+//     fn description(&self) -> &str {
+//         match *self {
+//             FixedHeaderError::NoEnoughBytes => "FixedHeader no enough bytes to decode/encode",
+//             FixedHeaderError::RemainLengthAvailable => "FixedHeader remain lenght is available",
+//         }
+//     }
+//     fn cause(&self) -> Option<&Error> { None }
+// }
+
+
+error_chain!{
+    types {
+        FixedHeaderError, ErrorKind, ResultExt, FixHeaderResult;
+    }
+
+    errors{
+        NoEnoughBytes(r: String)
+        RemainLengthAvailable(r: String)
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {

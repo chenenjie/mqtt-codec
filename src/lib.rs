@@ -1,4 +1,11 @@
+#[crate_type="lib"]
+#[crate_name="mqtt_codec"]
+
+#[macro_use]
+extern crate log;
 extern crate bytes;
+#[macro_use]
+extern crate error_chain;
 
 mod packet;
 
@@ -7,7 +14,7 @@ use bytes::BigEndian;
 use bytes::ByteOrder;
 use std::fmt;
 use packet::FixedHeaderError;
-
+use std::error::Error;
 
 pub trait Decodable<'a>: Sized {
     type Error;
@@ -42,11 +49,15 @@ impl<'a> Decodable<'a> for String {
         if len >= 2 {
             size = BigEndian::read_u16(bytes);
         } else {
-            return Err(PacketError::NoEnoughBytesToDecode);
+            error!("not enough bytes encode String header bytes");
+            // return Err(PacketError::NoEnoughBytesToDecode);
+            bail!(ErrorKind::NoEnoughBytesToDecode)
         }
 
         if len < (size as usize) + 2 {
-            return Err(PacketError::NoEnoughBytesToDecode);
+            error!("not enough bytes encode String content bytes");
+            // return Err(PacketError::NoEnoughBytesToDecode);
+            bail!(ErrorKind::NoEnoughBytesToDecode)
         }
 
         Ok(String::from_utf8(bytes.split_to(2 + ( size as usize )).split_off(2).to_vec())?)
@@ -64,7 +75,9 @@ impl<'a> Decodable<'a> for u8 {
             bytes.split_to(1);
             Ok(code)
         } else {
-            return Err(PacketError::NoEnoughBytesToDecode)
+            error!("u8 enough code to decode");
+            // return Err(PacketError::NoEnoughBytesToDecode)
+            bail!(ErrorKind::NoEnoughBytesToDecode)
         }
     }
 }
@@ -81,7 +94,9 @@ impl<'a> Decodable<'a> for u16 {
             byte.split_to(2);
             Ok(result)
         }else {
-            return Err(PacketError::NoEnoughBytesToDecode)
+            error!("u16 not enough code to decode");
+            // return Err(PacketError::NoEnoughBytesToDecode)
+            bail!(ErrorKind::NoEnoughBytesToDecode)
         }
     }
 }
@@ -132,35 +147,71 @@ impl Encodable for u8{
 }
 
 
-pub enum PacketError {
-    NoEnoughBytesToDecode,
-    FromUtf8Error(::std::string::FromUtf8Error),
-    FixedHeaderError(FixedHeaderError),
-    InvalidEncode,
-}
-
-impl From<::std::string::FromUtf8Error> for PacketError {
-    fn from(err: ::std::string::FromUtf8Error) -> PacketError {
-        PacketError::FromUtf8Error(err)
+error_chain!{
+    types {
+        PacketError, ErrorKind, ResultExt, PacketResult;
     }
-}
-
-impl From<FixedHeaderError> for PacketError{
-    fn from(err: FixedHeaderError) -> PacketError{
-        PacketError::FixedHeaderError(err)
+    
+    errors{
+        NoEnoughBytesToDecode
+        InvalidEncode
     }
-} 
 
-impl fmt::Debug for PacketError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &PacketError::NoEnoughBytesToDecode => write!(f, "No EnougnBytes"),
-            &PacketError::FromUtf8Error(ref e) => write!(f, "error from utf8 error"),
-            &PacketError::FixedHeaderError(ref e) => write!(f, "error from decode fixedHeader"),
-            &PacketError::InvalidEncode => write!(f, "invalid encode param or content"),
-        }
+    links {
+        ConnectPacket(::packet::connect::ConnectPacketError, ::packet::connect::ErrorKind);
     }
+
+    foreign_links {
+        FromUtf8Error(::std::string::FromUtf8Error);
+    }
+
 }
+// #[derive(Debug)]
+// pub enum PacketError {
+//     NoEnoughBytesToDecode,
+//     FromUtf8Error(::std::string::FromUtf8Error),
+//     FixedHeaderError(FixedHeaderError),
+//     InvalidEncode,
+// }
+
+
+// impl From<::std::string::FromUtf8Error> for PacketError {
+//     fn from(err: ::std::string::FromUtf8Error) -> PacketError {
+//         PacketError::FromUtf8Error(err)
+//     }
+// }
+
+// impl From<FixedHeaderError> for PacketError{
+//     fn from(err: FixedHeaderError) -> PacketError{
+//         PacketError::FixedHeaderError(err)
+//     }
+// } 
+
+// impl fmt::Display for PacketError {
+//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+//         match self {
+//             &PacketError::NoEnoughBytesToDecode => write!(f, "No EnoughBytes"),
+//             &PacketError::FromUtf8Error(ref e) => write!(f, "error from utf8 error"),
+//             &PacketError::FixedHeaderError(ref e) => write!(f, "error from decode fixedHeader"),
+//             &PacketError::InvalidEncode => write!(f, "invalid encode param or content"),
+//         }
+//     }
+// }
+
+// impl Error for PacketError {
+//     fn description(&self) -> &str {
+//         match *self {
+//             PacketError::NoEnoughBytesToDecode => "packet error, no enough bytes encode",
+//             PacketError::FromUtf8Error(ref e) => "error from utf8 error",
+//             PacketError::FixedHeaderError(ref e) => "error from decode fixed header",
+//             PacketError::InvalidEncode => "invalid encode param or content",
+//         }
+//     }
+
+//     fn cause(&self) -> Option<&Error>{
+//         None
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

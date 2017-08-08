@@ -1,7 +1,10 @@
 [package]
-name = "mqtt-new"
+name = "mqtt-codec"
 version = "0.1.0"
 authors = ["chenej <chenej@gzyitop.com>"]
 
 [dependencies]
 bytes = "*"
+log = "0.3"
+env_logger = "0.3"
+error-chain = "*"

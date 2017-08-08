@@ -5,6 +5,23 @@ use bytes::BytesMut;
 use bytes::BigEndian;
 use bytes::ByteOrder;
 
+
+error_chain!{
+    types {
+        ConnectPacketError, ErrorKind, ResultExt, ConnectPacketResult;
+    }
+
+    errors{
+        ConnectFlagsDecodeError(r: String)
+        WillMessageError
+        ConnectPayloadError(r: String)
+    }
+
+    links {
+        FixedHeaderError(::packet::FixedHeaderError, ::packet::ErrorKind);
+    }
+}
+
 #[derive(Debug)]
 struct ProtocolName(String);
 
@@ -38,7 +55,7 @@ impl ConnectFlags{
 
 
 impl<'a> Decodable<'a> for ConnectFlags {
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
     fn decode_with(bytes: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error> {
         let len = bytes.len();
@@ -97,14 +114,15 @@ impl<'a> Decodable<'a> for ConnectFlags {
             
             Ok(connect_flags)
         }else {
-            Err(PacketError::NoEnoughBytesToDecode)
+            error!("connect flag not enough code to decode");
+            Err(ErrorKind::ConnectFlagsDecodeError("connect flag not enough code to decode".into()).into())
         }
     }
 } 
 
 
 impl Encodable for ConnectFlags{
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
     fn encode_with(&self, _cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
         let mut connect_flag = 0u8;
@@ -136,7 +154,7 @@ impl Encodable for ConnectFlags{
         Ok(vec![connect_flag])
     }
 
-    fn encode_length(&self) -> Result<u32, PacketError> {
+    fn encode_length(&self) -> Result<u32, ConnectPacketError> {
         Ok(1)    
     }
 }
@@ -167,7 +185,7 @@ impl FixedHeader for ConnectFixedHeader{
 }
 
 impl<'a> Decodable<'a> for ConnectFixedHeader{
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error>{
@@ -188,7 +206,7 @@ impl<'a> Decodable<'a> for ConnectFixedHeader{
 }
 
 impl Encodable for ConnectFixedHeader {
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
     
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
@@ -229,13 +247,13 @@ impl Connect {
         connect
     }
 
-    fn calculate_remaining_length(&mut self) -> Result<(), PacketError> {
+    fn calculate_remaining_length(&mut self) -> Result<(), ConnectPacketError> {
         let remaining_length = self.protocol_name.0.encode_length()? + self.protocol_level.0.encode_length()? + self.connect_flags.encode_length()? + self.keep_alive.0.encode_length()? + self.payload.encode_length()?;
         self.fix_header.remaining_length = remaining_length;
         Ok(())
     }
 
-    fn set_will(&mut self, will: Option<(String, Vec<u8>)>) -> Result<(), PacketError>{
+    fn set_will(&mut self, will: Option<(String, Vec<u8>)>) -> Result<(), ConnectPacketError>{
         self.connect_flags.will_flag = will.is_some();
         
         match will {
@@ -251,13 +269,13 @@ impl Connect {
         self.calculate_remaining_length()
     }
 
-    fn set_user_name(&mut self, user_name: Option<String>) -> Result<(), PacketError>{
+    fn set_user_name(&mut self, user_name: Option<String>) -> Result<(), ConnectPacketError>{
         self.connect_flags.user_name_flag = user_name.is_some();
         self.payload.user_name = user_name;        
         self.calculate_remaining_length()
     }
 
-    fn set_password(&mut self, password: Option<String>) -> Result<(), PacketError> {
+    fn set_password(&mut self, password: Option<String>) -> Result<(), ConnectPacketError> {
         self.connect_flags.password_flag = password.is_some();
         self.payload.password = password;
         self.calculate_remaining_length()
@@ -290,6 +308,7 @@ impl<'a> Decodable<'a> for Connect{
         let keep_alive = KeepAlive(Decodable::decode(byte)?);
         let payload = Decodable::decode_with(byte, Some(connect_flags).as_ref())?;
 
+        
 
         let connect = Connect{
             fix_header: fix_header,
@@ -305,7 +324,7 @@ impl<'a> Decodable<'a> for Connect{
 }
 
 impl Encodable for Connect {
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
 
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
@@ -327,7 +346,7 @@ impl Encodable for Connect {
         Ok(result)
     }
 
-    fn encode_length(&self) -> Result<u32, PacketError> {
+    fn encode_length(&self) -> Result<u32, ConnectPacketError> {
         let mut length = self.fix_header.encode_length()?;
         length += self.protocol_name.0.encode_length()?;
         length += self.protocol_level.0.encode_length()?;
@@ -361,7 +380,7 @@ impl ConnectPayload {
 }
 
 impl<'a> Decodable<'a> for ConnectPayload{
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = &'a ConnectFlags;
 
     fn decode_with(byte: &mut BytesMut, connect_flags: Option<Self::Cond>) -> Result<Self, Self::Error>{
@@ -397,61 +416,67 @@ impl<'a> Decodable<'a> for ConnectPayload{
                 password: password,
             })
         }else {
-            Err(PacketError::NoEnoughBytesToDecode)
+            // error!("connect payload is not encode code to decode");
+            // Err(ConnectPacketError::NoEnoughBytesToDecode)
+            bail!(ErrorKind::ConnectPayloadError("decode connect payload fail ".into()))
         } 
     }
 }
 
 impl Encodable for ConnectPayload{
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ConnectFlags;
 
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
         let mut vec = vec![];
         match cond {
             Some(connect_flag) => {
-                vec.extend(self.client_identifier.encode()?);
+                vec.extend(self.client_identifier.encode().chain_err(||"encode client identifier is fail")?);
                 if connect_flag.will_flag {
                     //TODO eles return connectflag and content unmatchable error
                     if let Some(ref topic) = self.will_topic {
-                        vec.extend(topic.encode()?);        
+                        vec.extend(topic.encode().chain_err(||"encode will topic is fail")?);        
                     };
 
                     if let Some(ref message) = self.will_message{
-                        vec.extend(message.encode()?);
+                        vec.extend(message.encode().chain_err(||"encode will message is fail")?);
                     };
                 };
 
                 if connect_flag.user_name_flag {
                     if let Some(ref user_name) = self.user_name {
-                        vec.extend(user_name.encode()?);
+                        vec.extend(user_name.encode().chain_err(||"encode username is fail")?);
                     };
                 };
 
                 if connect_flag.password_flag {
                     if let Some(ref password) = self.password {
-                        vec.extend(password.encode()?);
+                        vec.extend(password.encode().chain_err(||"encode password is fail")?);
                     };
                 };
                 Ok(vec)
             },
-            _ => Err(PacketError::InvalidEncode)
+            _ => {
+                error!("connect payload encoding payload is none");
+                // Err(ConnectPacketError::InvalidEncode)
+                bail!(ErrorKind::ConnectPayloadError("connect payload parm is none".into()))
+            }
         }
     }
 
-    fn encode_length(&self) -> Result<u32, PacketError> {
-        let mut length = self.client_identifier.encode_length()?;
+    fn encode_length(&self) -> Result<u32, ConnectPacketError> {
+        let mut length = self.client_identifier.encode_length().chain_err(|| "client identifier encode lenght fail")?;
         if let Some(ref will_topic) = self.will_topic {
-            length += will_topic.encode_length()?;
+            length += will_topic.encode_length().chain_err(|| "will topic encode lenght fail")?;
         }
         if let Some(ref will_message) = self.will_message{
-            length += will_message.encode_length()?;
+            length += will_message.encode_length().chain_err(|| "will message encode lenght fail")?;
         }
         if let Some(ref user_name) = self.user_name {
-            length += user_name.encode_length()?;
+            length += user_name.encode_length().chain_err(|| "username encode lenght fail")?;
         }
         if let Some(ref password) = self.password {
-            length += password.encode_length()?;
+            length += password.encode_length().chain_err(|| "password enncode lenght fail")?;
         }
         Ok(length)
     }
@@ -461,7 +486,7 @@ impl Encodable for ConnectPayload{
 struct VecBytes(Vec<u8>);
 
 impl<'a> Decodable<'a> for VecBytes{
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error>{
@@ -470,7 +495,8 @@ impl<'a> Decodable<'a> for VecBytes{
         if len >= 2 {
             size = BigEndian::read_u16(byte);
         }else {
-            return Err(PacketError::NoEnoughBytesToDecode);
+            error!("will message header is not enough code to decode");
+            bail!(ErrorKind::WillMessageError);
         }
 
         let split_len = (size + 2 ) as usize;
@@ -480,13 +506,15 @@ impl<'a> Decodable<'a> for VecBytes{
 
             Ok(result)
         }else {
-            Err( PacketError::NoEnoughBytesToDecode )
+            error!("will message header is not enough code to decode");
+            // Err( ConnectPacketError::NoEnoughBytesToDecode )
+            bail!(ErrorKind::WillMessageError);
         }
     }
 } 
 
 impl Encodable for VecBytes {
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
     fn encode_with(&self, _cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error> {
         let mut result = vec![0u8; 2];
@@ -505,6 +533,7 @@ impl Encodable for VecBytes {
 #[cfg(test)]
 mod tests {
     use super::*;
+    extern crate env_logger;
 
     struct Enjie{
         a: i32,
@@ -559,6 +588,7 @@ mod tests {
 
     #[test]
     fn test_encode_connect_packet(){
+        let _ = env_logger::init().unwrap();
         let packet = Connect::with_level("MQTT", "123", 4);
 
         let vec = packet.encode().unwrap();
