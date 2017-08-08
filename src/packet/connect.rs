@@ -248,7 +248,11 @@ impl Connect {
     }
 
     fn calculate_remaining_length(&mut self) -> Result<(), ConnectPacketError> {
-        let remaining_length = self.protocol_name.0.encode_length()? + self.protocol_level.0.encode_length()? + self.connect_flags.encode_length()? + self.keep_alive.0.encode_length()? + self.payload.encode_length()?;
+        let remaining_length = self.protocol_name.0.encode_length().chain_err(||"encode protocol name length error")? 
+                        + self.protocol_level.0.encode_length().chain_err(||"encode protocol level length error")?
+                        + self.connect_flags.encode_length().chain_err(||"encode connect flags length error")?
+                        + self.keep_alive.0.encode_length().chain_err(||"encode keep alive length error")?
+                        + self.payload.encode_length().chain_err(||"encode payload length error")?;
         self.fix_header.remaining_length = remaining_length;
         Ok(())
     }
@@ -296,16 +300,16 @@ impl Connect {
 }
 
 impl<'a> Decodable<'a> for Connect{
-    type Error = PacketError;
+    type Error = ConnectPacketError;
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, _decode_size: Option<Self::Cond>) -> Result<Self, Self::Error> {
         //byte is fixable length according remaining length
         let fix_header = Decodable::decode(byte)?;
-        let protocol_name = ProtocolName(Decodable::decode(byte)?);
-        let protocol_level = ProtocolLevel(Decodable::decode(byte)?);
+        let protocol_name = ProtocolName(Decodable::decode(byte).chain_err(||"decode protocol name fail")?);
+        let protocol_level = ProtocolLevel(Decodable::decode(byte).chain_err(||"decode protocol level fail")?);
         let connect_flags = Decodable::decode(byte)?;
-        let keep_alive = KeepAlive(Decodable::decode(byte)?);
+        let keep_alive = KeepAlive(Decodable::decode(byte).chain_err(||"decode keep alive fail")?);
         let payload = Decodable::decode_with(byte, Some(connect_flags).as_ref())?;
 
         
@@ -329,12 +333,13 @@ impl Encodable for Connect {
 
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
         let mut result = vec![];
-        let fix_header = self.fix_header.encode()?;
-        let protocol_name = self.protocol_name.0.encode()?;
-        let protocol_level = self.protocol_level.0.encode()?;
-        let connect_flag = self.connect_flags.encode()?;
-        let keep_alive = self.keep_alive.0.encode()?;
-        let payload = self.payload.encode_with(Some(self.connect_flags))?;
+        
+        let fix_header = self.fix_header.encode().chain_err(|| "encode fix header fail")?;
+        let protocol_name = self.protocol_name.0.encode().chain_err(|| "encode protocol name fail")?;
+        let protocol_level = self.protocol_level.0.encode().chain_err(|| "encode protocol level fail")?;
+        let connect_flag = self.connect_flags.encode().chain_err(|| "encode connect flag fail")?;
+        let keep_alive = self.keep_alive.0.encode().chain_err(|| "encode keep alive fail")?;
+        let payload = self.payload.encode_with(Some(self.connect_flags)).chain_err(|| "encode payload fail")?;
 
         result.extend(fix_header);
         result.extend(protocol_name);
@@ -347,12 +352,12 @@ impl Encodable for Connect {
     }
 
     fn encode_length(&self) -> Result<u32, ConnectPacketError> {
-        let mut length = self.fix_header.encode_length()?;
-        length += self.protocol_name.0.encode_length()?;
-        length += self.protocol_level.0.encode_length()?;
-        length += self.connect_flags.encode_length()?;
-        length += self.keep_alive.0.encode_length()?;
-        length += self.payload.encode_length()?;
+        let mut length = self.fix_header.encode_length().chain_err(||"encode fix header length error")?;
+        length += self.protocol_name.0.encode_length().chain_err(||"encode protocol name length error")?;
+        length += self.protocol_level.0.encode_length().chain_err(||"encode protocol level length error")?;
+        length += self.connect_flags.encode_length().chain_err(||"encode connect flags length error")?;
+        length += self.keep_alive.0.encode_length().chain_err(||"encode keep alive length error")?;
+        length += self.payload.encode_length().chain_err(||"encode payload length error")?;
 
         Ok(length)
     }
@@ -384,26 +389,26 @@ impl<'a> Decodable<'a> for ConnectPayload{
     type Cond = &'a ConnectFlags;
 
     fn decode_with(byte: &mut BytesMut, connect_flags: Option<Self::Cond>) -> Result<Self, Self::Error>{
-        let client_identifier = Decodable::decode(byte)?;
+        let client_identifier = Decodable::decode(byte).chain_err(|| ErrorKind::ConnectPayloadError("decode clien identifier error".into()))?;
 
         if let Some(connect_flag) = connect_flags{
             let will_topic = if connect_flag.will_flag {
-                Some(Decodable::decode(byte)?)
+                Some(Decodable::decode(byte).chain_err(|| ErrorKind::ConnectPayloadError("decode will topic error".into()))?)
             }else{
                 None
             }; 
             let will_message = if connect_flag.will_flag {
-                Some(Decodable::decode(byte)?)
+                Some(Decodable::decode(byte).chain_err(|| ErrorKind::ConnectPayloadError("decode will message error".into()))?)
             }else{
                 None
             };
             let user_name = if connect_flag.user_name_flag {
-                Some(Decodable::decode(byte)?)
+                Some(Decodable::decode(byte).chain_err(|| ErrorKind::ConnectPayloadError("decode user name error".into()))?)
             }else{
                 None
             };
             let password = if connect_flag.password_flag {
-                Some(Decodable::decode(byte)?)
+                Some(Decodable::decode(byte).chain_err(|| ErrorKind::ConnectPayloadError("decode password error".into()))?)
             }else{
                 None
             };
@@ -593,10 +598,11 @@ mod tests {
 
         let vec = packet.encode().unwrap();
         let mut bytes = BytesMut::from(vec);
-        match Connect::decode(&mut bytes) {
-            Ok(result) => println!("{:?}", result),
-            Err(err) => println!("{:?}", err)
-        }
+        println!("{:?}", Connect::decode(&mut bytes));
+        //match Connect::decode(&mut bytes) {
+            //Ok(result) => println!("{:?}", result),
+            //Err(err) => println!("{:?}", err)
+        //}
     }
 
 }
