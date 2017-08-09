@@ -86,32 +86,6 @@ pub trait FixedHeader {
     }
 }
 
-// #[derive(Debug)]
-// pub enum FixedHeaderError {
-    // NoEnoughBytes,
-    // RemainLengthAvailable,
-// }
-
-// impl fmt::Display for FixedHeaderError {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match self {
-//             &FixedHeaderError::NoEnoughBytes => write!(f, "No EnougnBytes"),
-//             &FixedHeaderError::RemainLengthAvailable => write!(f, "Remailength Avaialable"),
-//         }
-//     }
-// }
-
-// impl Error for FixedHeaderError{
-
-//     fn description(&self) -> &str {
-//         match *self {
-//             FixedHeaderError::NoEnoughBytes => "FixedHeader no enough bytes to decode/encode",
-//             FixedHeaderError::RemainLengthAvailable => "FixedHeader remain lenght is available",
-//         }
-//     }
-//     fn cause(&self) -> Option<&Error> { None }
-// }
-
 
 error_chain!{
     types {

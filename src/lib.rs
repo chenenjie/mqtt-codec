@@ -8,6 +8,7 @@ extern crate bytes;
 extern crate error_chain;
 
 mod packet;
+mod control;
 
 use bytes::BytesMut;
 use bytes::BigEndian;
