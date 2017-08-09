@@ -176,8 +176,6 @@ impl<'a> Decodable<'a> for Connect{
         let keep_alive = Decodable::decode(byte).chain_err(||"decode keep alive fail")?;
         let payload = Decodable::decode_with(byte, Some(connect_flags).as_ref())?;
 
-        
-
         let connect = Connect{
             fix_header: fix_header,
             protocol_name: protocol_name,
