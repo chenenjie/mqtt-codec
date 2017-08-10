@@ -3,6 +3,7 @@ use std::fmt;
 use std::error::Error;
 
 pub mod connect;
+pub mod connack;
 
 pub trait FixedHeader {
     fn new() -> Self;
