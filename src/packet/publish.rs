@@ -107,7 +107,7 @@ struct PublishPayload(Vec<u8>);
 struct Publish{
     fix_header: PublishFixedHeader,
     topic_name: TopicName,    
-    packet_identifier, PacketIdentifier,
+    packet_identifier: PacketIdentifier,
     payload: PublishPayload,
 }
 
