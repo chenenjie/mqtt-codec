@@ -8,9 +8,6 @@ error_chain!{
         ConnackError, ErrorKind, ResultExt, ConnackResult;
     }
 
-    errors{
-        ConnackFixedHeaderError(r: String)
-    }
 
     links{
         FixedHeader(::packet::FixedHeaderError, ::packet::ErrorKind);
@@ -26,16 +23,18 @@ struct ConnackFixedHeader {
     remaining_length: u32,
 }
 
-impl FixedHeader for ConnackFixedHeader{
+impl ConnackFixedHeader{
 
-    fn new() -> Self {
+    fn new() -> ConnackFixedHeader {
         ConnackFixedHeader{
             packet_type: 2,
             reserved: 0,
             remaining_length: 0,
         }
     }
-     
+}
+
+impl FixedHeader for ConnackFixedHeader{
     fn set_remaining_length(&mut self, len: u32) {
         self.remaining_length = len;
     }
@@ -165,6 +164,6 @@ mod tests {
         //println!("{:?}",connack.encode());
         let mut bytes = BytesMut::from(connack.encode().unwrap());
         let connack_copy = Connack::decode(&mut bytes);
-        println!("{:?}", connack_copy);
+        //println!("{:?}", connack_copy);
     }
 }

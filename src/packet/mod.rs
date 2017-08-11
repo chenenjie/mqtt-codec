@@ -4,9 +4,11 @@ use std::error::Error;
 
 pub mod connect;
 pub mod connack;
+pub mod publish;
+
 
 pub trait FixedHeader {
-    fn new() -> Self;
+    //fn new() -> Self;
      
     fn set_remaining_length(&mut self, len: u32);
     

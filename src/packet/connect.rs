@@ -33,15 +33,17 @@ struct ConnectFixedHeader{
     remaining_length: u32,
 }
 
-
-impl FixedHeader for ConnectFixedHeader{
-    fn new() -> Self{
+impl ConnectFixedHeader{
+    fn new() -> ConnectFixedHeader{
         ConnectFixedHeader{
             packet_type: 1,
             reserved: 0,
             remaining_length: 0,
         }
     }
+}
+
+impl FixedHeader for ConnectFixedHeader{
      
     fn set_remaining_length(&mut self, len: u32) {
         self.remaining_length = len;
