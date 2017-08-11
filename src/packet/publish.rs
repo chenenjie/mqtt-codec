@@ -10,8 +10,14 @@ error_chain!{
         PublishError, ErrorKind, ResultExt, PublishResult;
     }
 
+    errors {
+        PublishPayloadError(r: String)
+    }
+
     links{
         FixedHeader(::packet::FixedHeaderError, ::packet::ErrorKind);
+        TopicName(::control::variable_header::TopicNameError, ::control::variable_header::TopicNameErrorKind);
+        PacketIdentifier(::control::variable_header::PacketIdentifierError, ::control::variable_header::PacketIdentifierErrorKind);
     }
 }
 
@@ -103,12 +109,104 @@ impl Encodable for PublishFixedHeader {
 
 struct PublishPayload(Vec<u8>);
 
+impl Encodable for PublishPayload{
+    type Error = PublishError;
+    type Cond = ();
 
-struct Publish{
-    fix_header: PublishFixedHeader,
+    fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error> {
+        let mut v = vec![];
+        v.extend(self.0.iter().cloned());
+        Ok(v)
+    }
+
+    fn encode_length(&self) -> Result<u32, Self::Error> {
+        Ok(self.0.len() as u32)
+    }
+}
+
+impl<'a> Decodable<'a> for PublishPayload{
+    type Error = PublishError;
+    type Cond = usize;
+
+    fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error> {
+        if let Some(len) = decode_size {
+            if len >= byte.len() {
+                Ok(PublishPayload(byte.split_to(len).to_vec()))
+            }else {
+                bail!(ErrorKind::PublishPayloadError("no enough byte to decode".into()))
+            }
+        } else {
+            bail!(ErrorKind::PublishPayloadError("param is none is avaiable".into()))
+        }
+    }
+}
+
+
+pub struct Publish{
+    fixed_header: PublishFixedHeader,
     topic_name: TopicName,    
     packet_identifier: PacketIdentifier,
     payload: PublishPayload,
+}
+
+impl Publish{
+    fn new() -> Publish {
+        Publish {
+            fixed_header: PublishFixedHeader::new(),
+            topic_name: TopicName("a/b".into()),
+            packet_identifier: PacketIdentifier(10),
+            payload: PublishPayload(vec![])
+        }
+    }
+}
+
+
+impl<'a> Decodable<'a> for Publish {
+    type Error = PublishError;
+    type Cond = ();
+
+    fn decode_with(byte: &mut BytesMut, _: Option<Self::Cond>) -> Result<Self, Self::Error> {
+        let fixed_header = Decodable::decode(byte)?;
+        let topic_name = Decodable::decode(byte)?;
+        let packet_identifier = Decodable::decode(byte)?;
+        let payload = Decodable::decode(byte)?;
+
+        Ok(Publish{
+            fixed_header: fixed_header,
+            topic_name: topic_name,
+            packet_identifier: packet_identifier,
+            payload: payload,
+        })
+    }
+}
+
+impl Encodable for Publish {
+    type Error = PublishError;
+    type Cond = ();
+
+    fn encode_with(&self, _: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
+        let mut v = vec![];
+        let fixed_header = self.fixed_header.encode()?;
+        let topic_name = self.topic_name.encode()?;
+        let packet_identifier = self.packet_identifier.encode()?;
+        let payload = self.payload.encode()?;
+
+        v.extend(fixed_header);
+        v.extend(topic_name);
+        v.extend(packet_identifier);
+        v.extend(payload);
+
+        Ok(v)
+    }
+
+    fn encode_length(&self) -> Result<u32, Self::Error> {
+        let len = self.fixed_header.encode_length()?
+                + self.topic_name.encode_length()?
+                + self.packet_identifier.encode_length()?
+                + self.packet_identifier.encode_length()?;
+
+        Ok(len)
+    }
 }
 
 #[cfg(test)]
@@ -118,7 +216,8 @@ mod test{
     fn test_encode_decode_publish_header(){
         let publish = PublishFixedHeader::new();
         let bytes = publish.encode();
-        println!("{:?}", bytes);
+        //println!("{:?}", bytes);
     }
+
 }
 
