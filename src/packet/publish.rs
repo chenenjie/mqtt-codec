@@ -71,6 +71,8 @@ impl<'a> Decodable<'a> for PublishFixedHeader {
                     false
                 };
 
+                byte.split_to(1 + n);
+
                 Ok(PublishFixedHeader{
                     packet_type: packet_type,
                     dup_flag: dup_flag,
@@ -107,6 +109,7 @@ impl Encodable for PublishFixedHeader {
     }
 }
 
+#[derive(Debug)]
 struct PublishPayload(Vec<u8>);
 
 impl Encodable for PublishPayload{
@@ -129,11 +132,17 @@ impl<'a> Decodable<'a> for PublishPayload{
     type Cond = usize;
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error> {
+        println!("{:?}", decode_size);
         if let Some(len) = decode_size {
-            if len >= byte.len() {
-                Ok(PublishPayload(byte.split_to(len).to_vec()))
-            }else {
-                bail!(ErrorKind::PublishPayloadError("no enough byte to decode".into()))
+            if len >= 0 {
+
+                if len >= byte.len() {
+                    Ok(PublishPayload(byte.split_to(len).to_vec()))
+                }else {
+                    bail!(ErrorKind::PublishPayloadError("no enough byte to decode".into()))
+                }
+            } else{
+                Ok(PublishPayload(vec![]))
             }
         } else {
             bail!(ErrorKind::PublishPayloadError("param is none is avaiable".into()))
@@ -142,6 +151,7 @@ impl<'a> Decodable<'a> for PublishPayload{
 }
 
 
+#[derive(Debug)]
 pub struct Publish{
     fixed_header: PublishFixedHeader,
     topic_name: TopicName,    
@@ -151,12 +161,22 @@ pub struct Publish{
 
 impl Publish{
     fn new() -> Publish {
-        Publish {
+        let mut publish = Publish {
             fixed_header: PublishFixedHeader::new(),
             topic_name: TopicName("a/b".into()),
             packet_identifier: PacketIdentifier(10),
-            payload: PublishPayload(vec![])
-        }
+            payload: PublishPayload(vec![32,32,32])
+        };
+        publish.calculate_remaining_length();
+        publish
+    }
+
+    fn calculate_remaining_length(&mut self) -> Result<(), PublishError> {
+        let remaining_length = self.topic_name.encode_length()?
+                                + self.packet_identifier.encode_length()?
+                                + self.payload.encode_length()?;
+        self.fixed_header.remaining_length = remaining_length;
+        Ok(())
     }
 }
 
@@ -166,10 +186,13 @@ impl<'a> Decodable<'a> for Publish {
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, _: Option<Self::Cond>) -> Result<Self, Self::Error> {
-        let fixed_header = Decodable::decode(byte)?;
-        let topic_name = Decodable::decode(byte)?;
-        let packet_identifier = Decodable::decode(byte)?;
-        let payload = Decodable::decode(byte)?;
+        let fixed_header :PublishFixedHeader = Decodable::decode(byte)?;
+        let topic_name :TopicName= Decodable::decode(byte)?;
+        let packet_identifier: PacketIdentifier = Decodable::decode(byte)?;
+        
+        let paylaod_length = fixed_header.remaining_length - topic_name.encode_length()? - packet_identifier.encode_length()?;
+
+        let payload = Decodable::decode_with(byte, Some(paylaod_length as usize))?;
 
         Ok(Publish{
             fixed_header: fixed_header,
@@ -212,11 +235,24 @@ impl Encodable for Publish {
 #[cfg(test)]
 mod test{
     use super::*;
+    use bytes::BytesMut;
     #[test]
     fn test_encode_decode_publish_header(){
         let publish = PublishFixedHeader::new();
         let bytes = publish.encode();
         //println!("{:?}", bytes);
+    }
+
+    #[test]
+    fn test_encode_decode_publish(){
+        let mut publish = Publish::new(); 
+        let bytes = publish.encode().unwrap();
+        //println!("{:?}", bytes);
+
+        
+        let mut bytesmut = BytesMut::from(bytes); 
+        //println!("{:?}", Publish::decode(&mut bytesmut));        
+
     }
 
 }

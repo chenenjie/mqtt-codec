@@ -5,6 +5,10 @@ use std::error::Error;
 pub mod connect;
 pub mod connack;
 pub mod publish;
+pub mod puback;
+pub mod pubrec;
+pub mod pubrel;
+pub mod pubcomp;
 
 
 pub trait FixedHeader {

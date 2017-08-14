@@ -1,6 +1,7 @@
 use bytes::BytesMut;
 use {Decodable, Encodable};
 
+#[derive(Debug)]
 pub struct TopicName(pub String);
 
 error_chain!{
@@ -14,6 +15,7 @@ impl<'a> Decodable<'a> for TopicName {
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, _: Option<Self::Cond>) -> Result<Self, Self::Error> {
+        //println!("{:?}", byte);
         Ok(TopicName(Decodable::decode(byte).chain_err(|| "decode topic name avaiable")?))
     }
 }

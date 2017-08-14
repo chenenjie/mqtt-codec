@@ -7,6 +7,7 @@ error_chain!{
     }
 }
 
+#[derive(Debug)]
 pub struct PacketIdentifier(pub u16);
 
 impl<'a> Decodable<'a> for PacketIdentifier{
