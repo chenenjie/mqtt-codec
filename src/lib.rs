@@ -9,6 +9,8 @@ extern crate error_chain;
 
 mod packet;
 mod control;
+mod qos;
+mod topic_name;
 
 use bytes::BytesMut;
 use bytes::BigEndian;
@@ -167,52 +169,6 @@ error_chain!{
     }
 
 }
-// #[derive(Debug)]
-// pub enum PacketError {
-//     NoEnoughBytesToDecode,
-//     FromUtf8Error(::std::string::FromUtf8Error),
-//     FixedHeaderError(FixedHeaderError),
-//     InvalidEncode,
-// }
-
-
-// impl From<::std::string::FromUtf8Error> for PacketError {
-//     fn from(err: ::std::string::FromUtf8Error) -> PacketError {
-//         PacketError::FromUtf8Error(err)
-//     }
-// }
-
-// impl From<FixedHeaderError> for PacketError{
-//     fn from(err: FixedHeaderError) -> PacketError{
-//         PacketError::FixedHeaderError(err)
-//     }
-// } 
-
-// impl fmt::Display for PacketError {
-//     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-//         match self {
-//             &PacketError::NoEnoughBytesToDecode => write!(f, "No EnoughBytes"),
-//             &PacketError::FromUtf8Error(ref e) => write!(f, "error from utf8 error"),
-//             &PacketError::FixedHeaderError(ref e) => write!(f, "error from decode fixedHeader"),
-//             &PacketError::InvalidEncode => write!(f, "invalid encode param or content"),
-//         }
-//     }
-// }
-
-// impl Error for PacketError {
-//     fn description(&self) -> &str {
-//         match *self {
-//             PacketError::NoEnoughBytesToDecode => "packet error, no enough bytes encode",
-//             PacketError::FromUtf8Error(ref e) => "error from utf8 error",
-//             PacketError::FixedHeaderError(ref e) => "error from decode fixed header",
-//             PacketError::InvalidEncode => "invalid encode param or content",
-//         }
-//     }
-
-//     fn cause(&self) -> Option<&Error>{
-//         None
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
