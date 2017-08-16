@@ -7,6 +7,7 @@ error_chain!{
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum QualityOfService{
     Level0 = 0,
     Level1 = 1,

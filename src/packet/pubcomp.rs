@@ -135,10 +135,10 @@ mod test{
     fn test_encode_decode_pubComp() {
         let pub_comp = PubComp::new();
         let vec = pub_comp.encode().unwrap();
-        println!("{:?}", vec);
+        //println!("{:?}", vec);
 
         let mut bytes = BytesMut::from(vec);
-        println!("{:?}", PubComp::decode(&mut bytes));
+        //println!("{:?}", PubComp::decode(&mut bytes));
     }
 }
 

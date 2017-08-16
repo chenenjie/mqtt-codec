@@ -1,7 +1,8 @@
 use bytes::BytesMut;
 use {Encodable, Decodable};
 
-pub struct TopicName(String);
+#[derive(Debug, Clone)]
+pub struct TopicName(pub String);
 
 error_chain!{
     types{
