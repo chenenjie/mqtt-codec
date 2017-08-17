@@ -11,6 +11,8 @@ mod packet;
 mod control;
 mod qos;
 mod topic_name;
+mod return_code;
+mod topic_filter;
 
 use bytes::BytesMut;
 use bytes::BigEndian;

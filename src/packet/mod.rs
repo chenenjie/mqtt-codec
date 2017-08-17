@@ -10,6 +10,8 @@ pub mod pubrec;
 pub mod pubrel;
 pub mod pubcomp;
 pub mod subscribe;
+pub mod suback;
+pub mod unsubscribe;
 
 
 pub trait FixedHeader {

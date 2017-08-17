@@ -16,7 +16,6 @@ error_chain!{
     }
 }
 
-#[derive(Debug)]
 struct SubAckFixedHeader{
     packet_type: u8,
     remaining_length: u32,
@@ -70,7 +69,6 @@ impl Encodable for SubAckFixedHeader {
     }
 }
 
-#[derive(Debug)]
 struct SubAckPayload {
     subscribes: Vec<SubscribeReturnCode>,
 }
@@ -115,8 +113,6 @@ impl Encodable for SubAckPayload {
         Ok(self.subscribes.len() as u32)
     }
 }
-
-#[derive(Debug)]
 struct SubAck {
     fixed_header: SubAckFixedHeader,
     packet_identifier: PacketIdentifier,
@@ -129,7 +125,7 @@ impl SubAck {
         for i in 1..5 {
             vec.push(SubscribeReturnCode::MaximumQos2);
         }
-        let mut suback = SubAck{
+        let suback = SubAck{
             fixed_header: SubAckFixedHeader::new(),
             packet_identifier: PacketIdentifier(81),
             payload: SubAckPayload{
@@ -199,11 +195,11 @@ mod test{
     fn test_suback_encode_decode(){
         let suback = SubAck::new();
         let mut vecbyte = suback.encode().unwrap();
-        //println!("{:?}", vecbyte);
+        println!("{:?}", vecbyte);
 
-        let mut byte = BytesMut::from(vecbyte);
-        let result = SubAck::decode(&mut byte);
-        //println!("{:?}", result);
+        let byte = BytesMut::from(vecbyte);
+        let result = SubAck::decode(byte);
+        println!("{:?}", result);
 
 
     }
