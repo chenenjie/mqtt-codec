@@ -29,6 +29,7 @@ impl DisconnectFixedHeader{
 impl FixedHeader for DisconnectFixedHeader {
     fn set_remaining_length(&mut self, len: u32) {
         self.remaining_length = len;
+
     }
 }
 
