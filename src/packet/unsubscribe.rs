@@ -23,6 +23,15 @@ struct UnsubscribeFixedHeader {
     remaining_length: u32,
 }
 
+impl UnsubscribeFixedHeader {
+    fn new() -> UnsubscribeFixedHeader{
+        UnsubscribeFixedHeader{
+            packet_type: 10,
+            remaining_length: 0,
+        }
+    }
+}
+
 impl FixedHeader for UnsubscribeFixedHeader {
     
     fn set_remaining_length(&mut self, len: u32){
@@ -64,6 +73,15 @@ impl Encodable for UnsubscribeFixedHeader{
 #[derive(Debug)]
 struct UnsubscribePayload {
     filters: Vec<TopicFilter>,
+}
+
+impl UnsubscribePayload {
+    fn new() -> UnsubscribePayload {
+        let vec = vec![TopicFilter("fuck".into())];
+        UnsubscribePayload {
+            filters: vec,
+        }
+    }
 }
 
 impl<'a> Decodable<'a> for UnsubscribePayload{
@@ -119,6 +137,25 @@ struct Unsubscribe {
     packet_identifier: PacketIdentifier,
     payload: UnsubscribePayload,
 }
+
+impl Unsubscribe {
+    fn new() -> Unsubscribe {
+        let mut result = Unsubscribe{
+            fixed_header: UnsubscribeFixedHeader::new(),
+            packet_identifier: PacketIdentifier(32),
+            payload: UnsubscribePayload::new(),
+        };
+        result.calculate_remaining_length();
+        result
+    }
+
+    fn calculate_remaining_length(&mut self) -> Result<(), UnsubscribeError>{
+        let length = self.packet_identifier.encode_length()? + self.payload.encode_length()?; 
+        self.fixed_header.remaining_length = length;
+        Ok(())
+    }
+}
+
 impl<'a> Decodable<'a> for Unsubscribe{
 
     type Error = UnsubscribeError;
@@ -174,6 +211,12 @@ mod test{
 
     #[test]
     fn test_unsubscribe_encode_decode(){
-        
+        let fuck = Unsubscribe::new();
+        let vecbytes = fuck.encode().unwrap();
+        //println!("{:?}", vecbytes);
+
+        let mut bytes = BytesMut::from(vecbytes);
+        let result = Unsubscribe::decode(&mut bytes);
+        //println!("{:?}", result);
     }
 }

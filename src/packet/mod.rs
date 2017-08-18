@@ -12,6 +12,11 @@ pub mod pubcomp;
 pub mod subscribe;
 pub mod suback;
 pub mod unsubscribe;
+pub mod unsuback;
+pub mod pingreq;
+pub mod pingresp;
+pub mod disconnect;
+
 
 
 pub trait FixedHeader {
