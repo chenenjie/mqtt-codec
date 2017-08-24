@@ -73,7 +73,7 @@ impl Encodable for PubCompFixedHeader {
 }
 
 #[derive(Debug)]
-struct PubComp{
+pub struct PubComp{
     fixed_header: PubCompFixedHeader,
     packet_identifier: PacketIdentifier,
 }

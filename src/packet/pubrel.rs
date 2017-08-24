@@ -73,7 +73,7 @@ impl Encodable for PubRelFixedHeader {
 }
 
 #[derive(Debug)]
-struct PubRel{
+pub struct PubRel{
     fixed_header: PubRelFixedHeader,
     packet_identifier: PacketIdentifier,
 }

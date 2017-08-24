@@ -67,7 +67,7 @@ impl Encodable for UnSubAckFixedHeader{
 
 
 #[derive(Debug)]
-struct UnSubAck{
+pub struct UnSubAck{
     fixed_header: UnSubAckFixedHeader,
     packet_identifier: PacketIdentifier,
 }

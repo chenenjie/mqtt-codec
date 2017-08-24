@@ -66,7 +66,7 @@ impl Encodable for PingRespFixedHeader{
 }
 
 #[derive(Debug)]
-struct PingResp{
+pub struct PingResp{
     fixed_header: PingRespFixedHeader,  
 }
 

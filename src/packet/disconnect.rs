@@ -66,7 +66,7 @@ impl Encodable for DisconnectFixedHeader{
 }
 
 #[derive(Debug)]
-struct Disconnect{
+pub struct Disconnect{
     fixed_header: DisconnectFixedHeader,  
 }
 

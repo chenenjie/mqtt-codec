@@ -73,7 +73,7 @@ impl Encodable for PubAckFixedHeader {
 }
 
 #[derive(Debug)]
-struct PubAck{
+pub struct PubAck{
     fixed_header: PubAckFixedHeader,
     packet_identifier: PacketIdentifier,
 }

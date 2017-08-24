@@ -132,7 +132,7 @@ impl Encodable for UnsubscribePayload{
 }
 
 #[derive(Debug)]
-struct Unsubscribe {
+pub struct Unsubscribe {
     fixed_header: UnsubscribeFixedHeader,
     packet_identifier: PacketIdentifier,
     payload: UnsubscribePayload,

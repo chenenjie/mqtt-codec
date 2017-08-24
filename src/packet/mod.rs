@@ -2,6 +2,7 @@ use bytes::BytesMut;
 use std::fmt;
 use std::error::Error;
 
+
 pub mod connect;
 pub mod connack;
 pub mod publish;
@@ -16,8 +17,6 @@ pub mod unsuback;
 pub mod pingreq;
 pub mod pingresp;
 pub mod disconnect;
-
-
 
 pub trait FixedHeader {
     //fn new() -> Self;
@@ -100,6 +99,7 @@ pub trait FixedHeader {
         Ok(num)
     }
 }
+
 
 
 error_chain!{

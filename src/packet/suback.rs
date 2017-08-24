@@ -117,7 +117,7 @@ impl Encodable for SubAckPayload {
 }
 
 #[derive(Debug)]
-struct SubAck {
+pub struct SubAck {
     fixed_header: SubAckFixedHeader,
     packet_identifier: PacketIdentifier,
     payload: SubAckPayload,

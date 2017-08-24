@@ -86,7 +86,7 @@ impl Encodable for ConnectFixedHeader {
 
 
 #[derive(Debug)]
-struct Connect{
+pub struct Connect{
     fix_header: ConnectFixedHeader,
     protocol_name: ProtocolName,
     protocol_level: ProtocolLevel,

@@ -78,7 +78,7 @@ impl Encodable for SubscribeFixedHeader {
 }
 
 #[derive(Debug)]
-struct Subscribe {
+pub struct Subscribe {
     fixed_header: SubscribeFixedHeader,
     packet_identifier: PacketIdentifier,
     payload: SubscribePayload,
