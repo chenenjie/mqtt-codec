@@ -3,20 +3,38 @@ use std::fmt;
 use std::error::Error;
 
 
-pub mod connect;
-pub mod connack;
-pub mod publish;
-pub mod puback;
-pub mod pubrec;
-pub mod pubrel;
-pub mod pubcomp;
-pub mod subscribe;
-pub mod suback;
-pub mod unsubscribe;
-pub mod unsuback;
-pub mod pingreq;
-pub mod pingresp;
-pub mod disconnect;
+mod connect;
+mod connack;
+mod publish;
+mod puback;
+mod pubrec;
+mod pubrel;
+mod pubcomp;
+mod subscribe;
+mod suback;
+mod unsubscribe;
+mod unsuback;
+mod pingreq;
+mod pingresp;
+mod disconnect;
+mod value_packet;
+
+pub use self::connect::{ Connect, ConnectError, ErrorKind as ConnectErrorKind };
+pub use self::connack::{ Connack, ConnackError, ErrorKind as ConnackErrorKind };
+pub use self::publish::{ Publish, PublishError, ErrorKind as PublishErrorKind };
+pub use self::puback::{ PubAck, PubAckError, ErrorKind as PubAckErrorKind };
+pub use self::pubrec::{ PubRec, PubRecError, ErrorKind as PubRecErrorKind };
+pub use self::pubrel::{ PubRel, PubRelError, ErrorKind as PubRelErrorKind };
+pub use self::pubcomp::{ PubComp, PubCompError, ErrorKind as PubCompErrorKind };
+pub use self::subscribe::{ Subscribe, SubscribeError, ErrorKind as SubscribeErrorKind };
+pub use self::suback::{ SubAck, SubAckError, ErrorKind as SubAckErrorKind };
+pub use self::unsubscribe::{ Unsubscribe, UnsubscribeError, ErrorKind as UnsubscribeErrorKind };
+pub use self::unsuback::{ UnSubAck, UnSubAckError, ErrorKind as UnSubAckErrorKind };
+pub use self::pingreq::{ PingReq, PingReqError, ErrorKind as PingReqErrorKind };
+pub use self::pingresp::{ PingResp, PingRespError, ErrorKind as PingRespErrorKind };
+pub use self::disconnect::{ Disconnect, DisconnectError, ErrorKind as DisconnectErrorKind };
+pub use self::value_packet::{ ValuePacket, ValuePacketError, ErrorKind as ValuePacketErrorKind };
+
 
 pub trait FixedHeader {
     //fn new() -> Self;

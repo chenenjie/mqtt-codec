@@ -112,10 +112,10 @@ mod test{
         let packet = PingReq::new();
         let vecbytes = packet.encode().unwrap();
 
-        println!("{:?}", vecbytes);
+        //println!("{:?}", vecbytes);
 
         let mut bytes = BytesMut::from(vecbytes);
         let result = PingReq::decode(&mut bytes);
-        println!("{:?}", result);
+        //println!("{:?}", result);
     }
 }

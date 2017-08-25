@@ -1,5 +1,4 @@
-#[crate_type="lib"]
-#[crate_name="mqtt_codec"]
+#![recursion_limit="128"]
 
 #[macro_use]
 extern crate log;
@@ -7,12 +6,13 @@ extern crate bytes;
 #[macro_use]
 extern crate error_chain;
 
-mod packet;
+pub mod packet;
 mod control;
 mod qos;
 mod topic_name;
 mod return_code;
 mod topic_filter;
+
 
 use bytes::BytesMut;
 use bytes::BigEndian;
@@ -163,7 +163,7 @@ error_chain!{
     }
 
     links {
-        ConnectPacket(::packet::connect::ConnectPacketError, ::packet::connect::ErrorKind);
+        ConnectPacket(::packet::ConnectError, ::packet::ConnectErrorKind);
     }
 
     foreign_links {

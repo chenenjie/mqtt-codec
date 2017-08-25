@@ -95,7 +95,6 @@ impl Encodable for PingResp {
     type Error = PingRespError;
     type Cond = ();
 
-
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error> {
         self.fixed_header.encode().map_err(From::from)
     }
@@ -113,10 +112,10 @@ mod test{
         let packet = PingResp::new();
         let vecbytes = packet.encode().unwrap();
 
-        println!("{:?}", vecbytes);
+        //println!("{:?}", vecbytes);
 
         let mut bytes = BytesMut::from(vecbytes);
         let result = PingResp::decode(&mut bytes);
-        println!("{:?}", result);
+        //println!("{:?}", result);
     }
 }

@@ -113,10 +113,10 @@ mod test{
         let packet = Disconnect::new();
         let vecbytes = packet.encode().unwrap();
 
-        println!("{:?}", vecbytes);
+        //println!("{:?}", vecbytes);
 
         let mut bytes = BytesMut::from(vecbytes);
         let result = Disconnect::decode(&mut bytes);
-        println!("{:?}", result);
+        //println!("{:?}", result);
     }
 }

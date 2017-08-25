@@ -8,3 +8,12 @@ bytes = "*"
 log = "0.3"
 env_logger = "0.3"
 error-chain = "*"
+
+futures = "0.1"
+tokio-io = "0.1"
+tokio-core = "0.1"
+tokio-proto = "0.1"
+tokio-service = "0.1"
+
+[lib]
+name = "mqtt_codec"

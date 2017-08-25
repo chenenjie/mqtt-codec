@@ -1,36 +1,22 @@
-mod connect;
-mod connack;
-mod publish;
-mod puback;
-mod pubrec;
-mod pubrel;
-mod pubcomp;
-mod subscribe;
-mod suback;
-mod unsubscribe;
-mod unsuback;
-mod pingreq;
-mod pingresp;
-mod disconnect;
-
-use connect::Connect;
-use connack::Connack;
-use publish::Publish;
-use puback::PubAck;
-use pubrec::PubRec;
-use pubrel::PubRel;
-use pubcomp::PubComp;
-use subscribe::Subscribe;
-use suback::SubAck;
-use unsubscribe::Unsubscribe;
-use unsuback::UnSubAck;
-use pingreq::PingReq;
-use pingresp::PingResp;
-use disconnect::Disconnect;
+use packet::connect::Connect;
+use packet::connack::Connack;
+use packet::publish::Publish;
+use packet::puback::PubAck;
+use packet::pubrec::PubRec;
+use packet::pubrel::PubRel;
+use packet::pubcomp::PubComp;
+use packet::subscribe::Subscribe;
+use packet::suback::SubAck;
+use packet::unsubscribe::Unsubscribe;
+use packet::unsuback::UnSubAck;
+use packet::pingreq::PingReq;
+use packet::pingresp::PingResp;
+use packet::disconnect::Disconnect;
 use {Decodable, Encodable};
 use packet::FixedHeader;
+use bytes::BytesMut;
 
-enum ValuePacket{
+pub enum ValuePacket{
     ConnectPacket(Connect),
     ConnackPacket(Connack),
     PublishPacket(Publish),
@@ -47,13 +33,46 @@ enum ValuePacket{
     DisconnecPacket(Disconnect),
 }
 
+
 error_chain!{
     types{
         ValuePacketError, ErrorKind, ResultExt, ValuePacketResult;
     }
+
+    links{
+        FixedHeaderError(::packet::FixedHeaderError, ::packet::ErrorKind);
+        ConnackError(::packet::ConnackError, ::packet::ConnackErrorKind);
+        ConnectError(::packet::ConnectError, ::packet::ConnectErrorKind);
+        DisconnectError(::packet::DisconnectError, ::packet::DisconnectErrorKind);
+        PingReqError(::packet::PingReqError, ::packet::PingReqErrorKind);
+        PingRespError(::packet::PingRespError, ::packet::PingRespErrorKind);
+        PubAckError(::packet::PubAckError, ::packet::PubAckErrorKind);
+        PubCompError(::packet::PubCompError, ::packet::PubCompErrorKind);
+        PublishError(::packet::PublishError, ::packet::PublishErrorKind);
+        PubRecError(::packet::PubRecError, ::packet::PubRecErrorKind);
+        PubRelError(::packet::PubRelError, ::packet::PubRelErrorKind);
+        SubAckError(::packet::SubAckError, ::packet::SubAckErrorKind);
+        SubscribeError(::packet::SubscribeError, ::packet::SubscribeErrorKind);
+        UnSubAckError(::packet::UnSubAckError, ::packet::UnSubAckErrorKind);
+        UnsubscribeError(::packet::UnsubscribeError, ::packet::UnsubscribeErrorKind);
+    }
 }
 
-impl FixedHeader for ValuePacket{}
+impl FixedHeader for ValuePacket{
+    fn set_remaining_length(&mut self, len: u32){
+        unreachable!();
+    }
+}
+
+impl ValuePacket {
+    pub fn get_packet_length(bytes: &mut BytesMut) -> Result<u32, ValuePacketError> {
+        if let Ok((_, _, n, _,)) = Self::get_fixheader(bytes) {
+            Ok(n)
+        }else{
+            bail!("get packet length error");
+        }
+    }
+}
 
 
 impl<'a> Decodable<'a> for ValuePacket {
@@ -61,8 +80,8 @@ impl<'a> Decodable<'a> for ValuePacket {
     type Cond = ();
 
     fn decode_with(byte: &mut BytesMut, decode_size: Option<Self::Cond>) -> Result<Self, Self::Error>{
-        let result = match Self::get_fixedheader(byte) {
-            Ok(packet_type, _, _, _) => {
+        let result = match Self::get_fixheader(byte) {
+            Ok((packet_type, _, _, _)) => {
                 match packet_type {
                     1 => ValuePacket::ConnectPacket(Decodable::decode(byte)?),
                     2 => ValuePacket::ConnackPacket(Decodable::decode(byte)?),
@@ -81,7 +100,7 @@ impl<'a> Decodable<'a> for ValuePacket {
                     _ => bail!("error packet type , no specify packet to decode"),
                 }
             },
-            Err(err) => err.into(),
+            Err(err) => return Err(err.into()),
         };
         Ok(result)
     }
@@ -93,40 +112,40 @@ impl Encodable for ValuePacket {
 
     fn encode_with(&self, cond: Option<Self::Cond>) -> Result<Vec<u8>, Self::Error>{
         match self {
-            ValuePacket::ConnectPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::ConnackPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PublishPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PubAckPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PubRecPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PubRelPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PubCompPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::SubscribePacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::SubAckPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::UnsubscribePacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::UnSubAckPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PingReqPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::PingRespPacket(packet) => packet.encode().map_err(From::from),
-            ValuePacket::DisconnecPacket(packet) => packet.encode().map_err(From::from),
+            &ValuePacket::ConnectPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::ConnackPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PublishPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PubAckPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PubRecPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PubRelPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PubCompPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::SubscribePacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::SubAckPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::UnsubscribePacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::UnSubAckPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PingReqPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::PingRespPacket(ref packet) => packet.encode().map_err(From::from),
+            &ValuePacket::DisconnecPacket(ref packet) => packet.encode().map_err(From::from),
             _ => bail!("not found value packet error"),
         }
     }
 
     fn encode_length(&self) -> Result<u32, Self::Error>{
         match self {
-            ValuePacket::ConnectPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::ConnackPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PublishPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PubAckPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PubRecPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PubRelPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PubCompPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::SubscribePacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::SubAckPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::UnsubscribePacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::UnSubAckPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PingReqPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::PingRespPacket(packet) => packet.encode_length().map_err(From::from),
-            ValuePacket::DisconnecPacket(packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::ConnectPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::ConnackPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PublishPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PubAckPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PubRecPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PubRelPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PubCompPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::SubscribePacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::SubAckPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::UnsubscribePacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::UnSubAckPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PingReqPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::PingRespPacket(ref packet) => packet.encode_length().map_err(From::from),
+            &ValuePacket::DisconnecPacket(ref packet) => packet.encode_length().map_err(From::from),
             _ => bail!("not found value packet error"),
         }
     }
