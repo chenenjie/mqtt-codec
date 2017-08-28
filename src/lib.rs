@@ -59,7 +59,9 @@ impl<'a> Decodable<'a> for String {
             bail!(ErrorKind::NoEnoughBytesToDecode)
         }
 
+        
         if len < (size as usize) + 2 {
+            error!("expect size len : {}, acutal len : {}", size, len);
             error!("not enough bytes encode String content bytes");
             // return Err(PacketError::NoEnoughBytesToDecode);
             bail!(ErrorKind::NoEnoughBytesToDecode)

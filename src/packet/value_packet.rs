@@ -16,6 +16,7 @@ use {Decodable, Encodable};
 use packet::FixedHeader;
 use bytes::BytesMut;
 
+#[derive(Debug)]
 pub enum ValuePacket{
     ConnectPacket(Connect),
     ConnackPacket(Connack),
@@ -67,7 +68,7 @@ impl FixedHeader for ValuePacket{
 impl ValuePacket {
     pub fn get_packet_length(bytes: &mut BytesMut) -> Result<u32, ValuePacketError> {
         if let Ok((_, _, n, _,)) = Self::get_fixheader(bytes) {
-            Ok(n)
+            Ok(n + 2)
         }else{
             bail!("get packet length error");
         }

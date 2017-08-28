@@ -33,8 +33,14 @@ impl Decoder for PackectCodec {
             }else {
                 let mut packet_byte = src.split_to(n as usize);
                 match ValuePacket::decode(&mut packet_byte) {
-                    Ok(item) => Ok(Some(item)),
-                    Err(err) => Err(io::Error::new(io::ErrorKind::Other, "decode available")),
+                    Ok(item) => {
+                        println!("{:?}", item);
+                        Ok(Some(item))
+                    },
+                    Err(err) => {
+                        println!("{:?}", err);
+                        Err(io::Error::new(io::ErrorKind::Other, "decode available"))
+                    },
                 }
             }
         }else {
@@ -85,12 +91,13 @@ impl Service for Mqtt {
     type Future = BoxFuture<Self::Response, Self::Error>;
 
     fn call(&self, req: Self::Request) -> Self::Future {
+        println!("packet {:?}", req);
         future::ok(req).boxed()
     }
 }
 
 fn main(){
-    let addr = "0.0.0.0:12345".parse().unwrap();
+    let addr = "0.0.0.0:1883".parse().unwrap();
 
     let server = TcpServer::new(PackectProto, addr);
 
